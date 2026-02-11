@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <div class="balance-view">
-      <h1>💰 Mi Estado de Cuenta</h1>
+      <h1 class="page-title">Mi estado de cuenta</h1>
       
       <!-- Resumen General -->
       <div class="summary-card" v-if="!loading">
@@ -12,7 +12,7 @@
         
         <div class="summary-grid">
           <div class="summary-item total-pagado">
-            <div class="summary-icon">✅</div>
+            <div class="summary-icon icon-paid"></div>
             <div class="summary-content">
               <h3>Total Pagado</h3>
               <p class="amount">${{ formatCurrency(summary.totalPagado || 0) }}</p>
@@ -20,7 +20,7 @@
           </div>
           
           <div class="summary-item saldo-pendiente">
-            <div class="summary-icon">📋</div>
+            <div class="summary-icon icon-pending"></div>
             <div class="summary-content">
               <h3>Saldo Pendiente</h3>
               <p class="amount">${{ formatCurrency(summary.totalPendiente || 0) }}</p>
@@ -277,6 +277,16 @@ onMounted(() => {
 
 <style scoped>
 /* Mantener todos los estilos iguales */
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  margin-bottom: 28px;
+}
+
+
 .balance-view {
   min-height: calc(100vh - 180px);
   padding: 0;
@@ -291,11 +301,10 @@ h1 {
 }
 
 .summary-card {
-  background: white;
-  border-radius: 16px;
-  padding: 25px;
-  margin-bottom: 30px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
 }
 
 .summary-header {
@@ -307,8 +316,9 @@ h1 {
 
 .summary-header h2 {
   margin: 0;
-  color: #333;
-  font-size: 1.4rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #0f172a;
 }
 
 .update-time {
@@ -353,6 +363,8 @@ h1 {
   font-size: 1.8rem;
   font-weight: 700;
   color: #333;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
 }
 
 .total-pagado .summary-icon { color: #2e7d32; }
@@ -422,17 +434,17 @@ h1 {
 }
 
 .status-completed {
-  background: #e8f5e9;
+  background: rgba(46, 125, 50, 0.12);
   color: #2e7d32;
 }
 
 .status-partial {
-  background: #fff3e0;
+  background: rgba(245, 124, 0, 0.12);
   color: #f57c00;
 }
 
 .status-pending {
-  background: #ffebee;
+  background: rgba(211, 47, 47, 0.12);
   color: #d32f2f;
 }
 
@@ -457,9 +469,9 @@ h1 {
 .pending { color: #d32f2f; }
 
 .progress-bar {
-  height: 8px;
+  height: 6px;
+  border-radius: 999px;
   background: #e9ecef;
-  border-radius: 4px;
   margin: 20px 0 10px;
   overflow: hidden;
 }
@@ -467,7 +479,7 @@ h1 {
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #4A90E2, #357ABD);
-  border-radius: 4px;
+  border-radius: 999px;
   transition: width 0.5s ease;
 }
 
@@ -500,8 +512,8 @@ h1 {
   align-items: center;
   gap: 15px;
   padding: 15px;
-  background: #f8f9fa;
-  border-radius: 10px;
+  background: #f9fafb;
+  border-radius: 12px;
   transition: background 0.3s;
 }
 
@@ -543,6 +555,8 @@ h1 {
   font-weight: 700;
   color: #333;
   font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+
 }
 
 .empty-state {
@@ -601,4 +615,6 @@ h1 {
     text-align: center;
   }
 }
+
+
 </style>

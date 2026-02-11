@@ -1,29 +1,29 @@
 <template>
   <nav class="bottom-navigation">
     <router-link to="/noticias" class="nav-item" :class="{ active: $route.path === '/noticias' }">
-      <div class="nav-icon">📰</div>
+      <Newspaper class="nav-icon" />
       <span class="nav-label">Noticias</span>
     </router-link>
     
     <router-link to="/eventos" class="nav-item" :class="{ active: $route.path === '/eventos' }">
-      <div class="nav-icon">📅</div>
+      <Calendar class="nav-icon" />
       <span class="nav-label">Eventos</span>
     </router-link>
     
     <router-link to="/balance" class="nav-item" :class="{ active: $route.path === '/balance' }">
-      <div class="nav-icon">💰</div>
+      <Wallet class="nav-icon" />
       <span class="nav-label">Mi Estado</span>
     </router-link>
     
     <router-link to="/qr" class="nav-item" :class="{ active: $route.path === '/qr' }">
-      <div class="nav-icon">📱</div>
+      <QrCode class="nav-icon" />
       <span class="nav-label">Mi QR</span>
     </router-link>
   </nav>
 </template>
 
 <script setup>
-// No necesita lógica adicional
+import { Newspaper, Calendar, Wallet, QrCode } from 'lucide-vue-next'
 </script>
 
 <style scoped>
@@ -56,7 +56,23 @@
   flex: 1;
   max-width: 85px;
   position: relative;
+  -webkit-tap-highlight-color: transparent;
+
 }
+
+.nav-item:focus,
+.nav-item:active,
+.nav-item:focus-visible {
+  outline: none;
+  background: transparent;
+}
+
+@media (hover: hover) {
+  .nav-item:hover {
+    background: #f8fafc;
+  }
+}
+
 
 .nav-item:hover {
   background: #f8fafc;
@@ -79,22 +95,23 @@
 }
 
 .nav-item.active .nav-icon {
+  color: #4A90E2;       /* 👈 mismo azul del cuadrito */
   transform: translateY(-2px);
-  background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
-  color: white;
 }
 
 .nav-icon {
   font-size: 20px;
   margin-bottom: 4px;
-  width: 36px;
-  height: 36px;
-  display: flex;
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.6;
+  display: block;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  background: #f8fafc;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  transition: transform 0.25s ease, color 0.25s ease;
 }
 
 .nav-label {

@@ -1,46 +1,52 @@
 <template>
   <AppLayout>
-    <div class="events-view">
-      <h1>📅 Eventos de la Colonia</h1>
-      
+    <section class="events-view">
+        <h1 class="page-title">Eventos de la colonia</h1>
+
+
       <div class="events-list">
-        <div class="event-card" v-for="event in events" :key="event.id">
+        <article
+          class="event-card"
+          v-for="event in events"
+          :key="event.id"
+        >
           <div class="event-date">
-            <div class="event-day">{{ getDay(event.fecha) }}</div>
-            <div class="event-month">{{ getMonth(event.fecha) }}</div>
+            <span class="event-day">{{ getDay(event.fecha) }}</span>
+            <span class="event-month">{{ getMonth(event.fecha) }}</span>
           </div>
-          
+
           <div class="event-content">
-            <h3>{{ event.titulo }}</h3>
+            <h3 class="event-title">{{ event.titulo }}</h3>
             <p class="event-description">{{ event.descripcion }}</p>
-            
+
             <div class="event-details">
               <span class="detail-item">
-                <i>📅</i> {{ formatDate(event.fecha) }}
+                📅 {{ formatDate(event.fecha) }}
               </span>
               <span class="detail-item" v-if="event.hora">
-                <i>🕒</i> {{ event.hora }}
+                🕒 {{ event.hora }}
               </span>
               <span class="detail-item" v-if="event.lugar">
-                <i>📍</i> {{ event.lugar }}
+                📍 {{ event.lugar }}
               </span>
             </div>
           </div>
-        </div>
+        </article>
       </div>
-    </div>
+    </section>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 
 const events = ref([
   {
     id: 1,
     titulo: 'Junta de Vecinos',
-    descripcion: 'Se tratarán temas relacionados al suministro de agua y mantenimiento de áreas comunes.',
+    descripcion:
+      'Se tratarán temas relacionados al suministro de agua y mantenimiento de áreas comunes.',
     fecha: '2026-02-24',
     hora: '18:00 hrs',
     lugar: 'Salón Comunitario'
@@ -48,50 +54,55 @@ const events = ref([
   {
     id: 2,
     titulo: 'Limpieza General',
-    descripcion: 'Jornada de limpieza en áreas verdes y calles principales de la colonia.',
+    descripcion:
+      'Jornada de limpieza en áreas verdes y calles principales de la colonia.',
     fecha: '2026-03-10',
     hora: '09:00 hrs',
-    lugar: 'Punto de encuentro: Parque Central'
+    lugar: 'Parque Central'
   },
   {
     id: 3,
     titulo: 'Asamblea Anual',
-    descripcion: 'Revisión de estados financieros y plan de trabajo para el próximo año.',
+    descripcion:
+      'Revisión de estados financieros y plan de trabajo para el próximo año.',
     fecha: '2026-01-30',
     hora: '17:30 hrs',
     lugar: 'Auditorio de la Colonia'
   }
 ])
 
-const getDay = (dateString) => {
-  const date = new Date(dateString)
-  return date.getDate()
-}
+const getDay = d => new Date(d).getDate()
+const getMonth = d =>
+  new Date(d)
+    .toLocaleDateString('es-MX', { month: 'short' })
+    .toUpperCase()
 
-const getMonth = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('es-MX', { month: 'short' }).toUpperCase()
-}
-
-const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('es-MX', {
+const formatDate = d =>
+  new Date(d).toLocaleDateString('es-MX', {
     weekday: 'long',
-    year: 'numeric',
+    day: 'numeric',
     month: 'long',
-    day: 'numeric'
+    year: 'numeric'
   })
-}
-
-onMounted(() => {
-  console.log('EventsView cargado - modo informativo')
-})
 </script>
 
 <style scoped>
+/* ===== CONTENEDOR ===== */
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  margin-bottom: 28px;
+  margin-top: 15px;
+}
+
+
 .events-view {
+  min-height: calc(100vh - 180px);
   padding: 0;
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
@@ -100,119 +111,114 @@ h1 {
   margin-bottom: 25px;
   text-align: center;
 }
-
+/* ===== LISTA ===== */
 .events-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+  
 }
 
+/* ===== CARD ===== */
 .event-card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
+
+  width: 100%;
   display: flex;
-  gap: 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-  border-left: 4px solid #4A90E2;
-  transition: transform 0.3s, box-shadow 0.3s;
+  gap: 16px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  border-left: 4px solid #2563eb;
 }
 
-.event-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.12);
-}
-
+/* ===== FECHA ===== */
 .event-date {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 15px;
-  min-width: 70px;
-  text-align: center;
+  flex-shrink: 0;
+  width: 72px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 10px 6px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
-  border: 1px solid #e9ecef;
 }
 
 .event-day {
-  font-size: 28px;
-  font-weight: bold;
-  color: #4A90E2;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #2563eb;
   line-height: 1;
 }
 
 .event-month {
-  font-size: 14px;
-  color: #666;
-  margin-top: 5px;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 4px;
 }
 
+/* ===== CONTENIDO ===== */
 .event-content {
   flex: 1;
+  min-width: 0;
 }
 
-.event-content h3 {
-  color: #333;
-  margin: 0 0 10px 0;
-  font-size: 1.2rem;
+.event-title {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
 }
 
 .event-description {
-  color: #555;
-  line-height: 1.6;
-  margin-bottom: 15px;
   font-size: 0.95rem;
+  color: #4b5563;
+  line-height: 1.5;
+  margin-bottom: 12px;
 }
 
+/* ===== DETALLES ===== */
 .event-details {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
-  padding-top: 15px;
-  border-top: 1px solid #eee;
+  gap: 12px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 10px;
 }
 
 .detail-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #666;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  color: #6b7280;
+  white-space: nowrap;
 }
 
-.detail-item i {
-  font-size: 1rem;
-  opacity: 0.7;
-}
-
-/* Responsive */
+/* ===== MOBILE ===== */
 @media (max-width: 768px) {
-  .events-view {
-    padding: 15px;
-  }
-  
   .event-card {
     flex-direction: column;
-    gap: 15px;
   }
-  
+
+  .events-view {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  .event-card {
+    flex-direction: column;
+  }
+
   .event-date {
+    width: 100%;
     flex-direction: row;
+    gap: 12px;
     justify-content: center;
-    gap: 15px;
-    min-width: auto;
-    padding: 10px;
   }
-  
-  .event-day {
-    font-size: 24px;
-  }
-  
+
   .event-details {
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
 }
 </style>

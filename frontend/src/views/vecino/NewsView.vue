@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <div class="news-view">
-      <h1>📰 Noticias de la Colonia</h1>
+      <h1 class="page-title"> Noticias de la Colonia</h1>
       <div class="news-list">
         <div class="news-card" v-for="news in newsList" :key="news.id">
           <h3>{{ news.titulo }}</h3>
@@ -60,9 +60,20 @@ onMounted(() => {
 </script>
 
 <style scoped>
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  margin-bottom: 28px;
+}
+
+
 .news-view {
+  min-height: calc(100vh - 180px);
   padding: 0;
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
