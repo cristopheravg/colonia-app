@@ -71,7 +71,7 @@ const handleLogin = async () => {
   })
   
   if (result.success) {
-    router.push('/')
+    router.push('/balance')
   } else {
     error.value = result.error
   }
