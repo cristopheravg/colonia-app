@@ -1,18 +1,26 @@
 <template>
   <AppLayout>
-    <div class="news-view">
-      <h1 class="page-title"> Noticias de la Colonia</h1>
+    <section class="news-view">
+      <h1 class="page-title">Noticias de la Colonia</h1>
+
       <div class="news-list">
-        <div class="news-card" v-for="news in newsList" :key="news.id">
-          <h3>{{ news.titulo }}</h3>
+        <article
+          class="news-card"
+          v-for="news in newsList"
+          :key="news.id"
+        >
+          <h3 class="news-title">{{ news.titulo }}</h3>
           <p class="news-content">{{ news.contenido }}</p>
           <div class="news-footer">
             <span class="news-date">{{ formatDate(news.fecha_publicacion) }}</span>
             <span class="news-badge" v-if="news.destacada">🌟 Destacada</span>
           </div>
-        </div>
+        </article>
       </div>
-    </div>
+
+      <div v-if="loading" class="loading">Cargando noticias...</div>
+      <div v-if="!loading && !newsList.length" class="empty-state">No hay noticias disponibles.</div>
+    </section>
   </AppLayout>
 </template>
 
@@ -20,31 +28,12 @@
 import { ref, onMounted } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 
-const newsList = ref([
-  {
-    id: 1,
-    titulo: 'Mejora en el Sistema de Agua',
-    contenido: 'Se ha completado la reparación de la tubería principal. El servicio de agua se normalizará a partir del lunes.',
-    fecha_publicacion: '2026-02-15',
-    destacada: true
-  },
-  {
-    id: 2,
-    titulo: 'Nuevo Alumbrado Público',
-    contenido: 'Se han instalado nuevas luminarias LED en las calles principales. Esto mejorará la seguridad durante la noche.',
-    fecha_publicacion: '2026-02-10',
-    destacada: false
-  },
-  {
-    id: 3,
-    titulo: 'Recolección de Basura - Nuevo Horario',
-    contenido: 'A partir del próximo mes, la recolección será los martes y viernes en horario matutino.',
-    fecha_publicacion: '2026-02-05',
-    destacada: true
-  }
-])
+const newsList = ref([])
+const loading = ref(false)
 
+// Función para formatear fechas
 const formatDate = (dateString) => {
+  if (!dateString) return ''
   const date = new Date(dateString)
   return date.toLocaleDateString('es-MX', {
     weekday: 'long',
@@ -54,21 +43,42 @@ const formatDate = (dateString) => {
   })
 }
 
-onMounted(() => {
-  console.log('NewsView cargado')
+// Cargar noticias desde la API
+onMounted(async () => {
+  loading.value = true
+  try {
+    const token = localStorage.getItem('colonia_token')
+
+    const response = await fetch('http://54.227.139.118:3000/api/noticias', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+
+    const data = await response.json()
+
+    if (data.success) {
+      newsList.value = data.data
+    } else {
+      console.error(data.message)
+    }
+  } catch (error) {
+    console.error('Error cargando noticias:', error)
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
 <style scoped>
-
 .page-title {
   font-size: 1.6rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: #0f172a;
   margin-bottom: 28px;
+  margin-top: 15px;
 }
-
 
 .news-view {
   min-height: calc(100vh - 180px);
@@ -90,7 +100,7 @@ h1 {
 }
 
 .news-card {
-  background: white;
+  background: #fff;
   border-radius: 12px;
   padding: 25px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.08);
@@ -103,10 +113,11 @@ h1 {
   box-shadow: 0 4px 15px rgba(0,0,0,0.12);
 }
 
-.news-card h3 {
-  color: #333;
+.news-title {
   margin: 0 0 15px 0;
   font-size: 1.3rem;
+  font-weight: 600;
+  color: #333;
 }
 
 .news-content {
@@ -138,15 +149,22 @@ h1 {
   font-weight: 500;
 }
 
+.loading,
+.empty-state {
+  text-align: center;
+  color: #666;
+  margin-top: 20px;
+}
+
 @media (max-width: 768px) {
   .news-view {
     padding: 15px;
   }
-  
+
   .news-card {
     padding: 20px;
   }
-  
+
   .news-footer {
     flex-direction: column;
     gap: 10px;

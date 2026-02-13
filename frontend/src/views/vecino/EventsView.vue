@@ -11,21 +11,21 @@
           :key="event.id"
         >
           <div class="event-date">
-            <span class="event-day">{{ getDay(event.fecha) }}</span>
-            <span class="event-month">{{ getMonth(event.fecha) }}</span>
+            <span class="event-day">{{ getDay(event.fecha_inicio) }}</span>
+            <span class="event-month">{{ getMonth(event.fecha_inicio) }}</span>
           </div>
 
           <div class="event-content">
-            <h3 class="event-title">{{ event.titulo }}</h3>
+            <h3 class="event-title">{{ event.nombre }}</h3>
             <p class="event-description">{{ event.descripcion }}</p>
 
             <div class="event-details">
               <span class="detail-item">
-                📅 {{ formatDate(event.fecha) }}
+                📅 {{ formatDate(event.fecha_inicio) }}
               </span>
-              <span class="detail-item" v-if="event.hora">
+              <!--<span class="detail-item" v-if="event.hora">
                 🕒 {{ event.hora }}
-              </span>
+              </span>-->
               <span class="detail-item" v-if="event.lugar">
                 📍 {{ event.lugar }}
               </span>
@@ -38,38 +38,40 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+//import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+
 import AppLayout from '@/components/layout/AppLayout.vue'
 
-const events = ref([
-  {
-    id: 1,
-    titulo: 'Junta de Vecinos',
-    descripcion:
-      'Se tratarán temas relacionados al suministro de agua y mantenimiento de áreas comunes.',
-    fecha: '2026-02-24',
-    hora: '18:00 hrs',
-    lugar: 'Salón Comunitario'
-  },
-  {
-    id: 2,
-    titulo: 'Limpieza General',
-    descripcion:
-      'Jornada de limpieza en áreas verdes y calles principales de la colonia.',
-    fecha: '2026-03-10',
-    hora: '09:00 hrs',
-    lugar: 'Parque Central'
-  },
-  {
-    id: 3,
-    titulo: 'Asamblea Anual',
-    descripcion:
-      'Revisión de estados financieros y plan de trabajo para el próximo año.',
-    fecha: '2026-01-30',
-    hora: '17:30 hrs',
-    lugar: 'Auditorio de la Colonia'
-  }
-])
+
+const events = ref([])
+
+
+  //EXTRAER LOS EVENTOS DE LA BASE DE DATOS
+    onMounted(async () => {
+    try {
+      const token = localStorage.getItem('colonia_token')
+
+      const response = await fetch('http://54.227.139.118:3000/api/eventos', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        events.value = data.data
+      } else {
+        console.error(data.message)
+      }
+
+    } catch (error) {
+      console.error('Error cargando eventos:', error)
+    }
+  })
+
+
 
 const getDay = d => new Date(d).getDate()
 const getMonth = d =>

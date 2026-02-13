@@ -1,30 +1,35 @@
 <template>
-  <div class="news-view">
+  <div class="news-admin-view">
     <div class="page-header">
-      <h1>Noticias</h1>
+      <h1>Noticias de la Colonia</h1>
       <button class="btn-primary" @click="openCreateModal">
         + Nueva Noticia
       </button>
     </div>
 
-    <!-- Lista -->
+    <!-- Lista de noticias -->
     <div v-if="!loading && sortedNews.length" class="news-list">
-      <div v-for="item in sortedNews" :key="item.id" class="news-card">
+      <div
+        v-for="news in sortedNews"
+        :key="news.id"
+        class="news-card"
+      >
         <div class="news-info">
-          <h3>{{ item.titulo }}</h3>
+          <h3>{{ news.titulo }}</h3>
           <p class="news-date">
-            📰 {{ formatDate(item.fecha) }}
+            📅 {{ formatDate(news.fecha_publicacion) }}
           </p>
-          <p class="news-description">
-            {{ item.descripcion }}
+          <p class="news-content">
+            {{ news.contenido }}
           </p>
+          <p v-if="news.destacada" class="news-badge">🌟 Destacada</p>
         </div>
 
         <div class="news-actions">
-          <button class="btn-edit" @click="editNews(item)">
+          <button class="btn-edit" @click="editNews(news)">
             Editar
           </button>
-          <button class="btn-delete" @click="deleteNews(item.id)">
+          <button class="btn-delete" @click="deleteNews(news.id)">
             Eliminar
           </button>
         </div>
@@ -50,13 +55,20 @@
         </div>
 
         <div class="form-group">
-          <label>Descripción</label>
-          <textarea v-model="form.descripcion"></textarea>
+          <label>Contenido</label>
+          <textarea v-model="form.contenido"></textarea>
         </div>
 
         <div class="form-group">
-          <label>Fecha</label>
-          <input v-model="form.fecha" type="date" />
+          <label>Fecha de Publicación</label>
+          <input v-model="form.fecha_publicacion" type="date" />
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" v-model="form.destacada" />
+            Destacada
+          </label>
         </div>
 
         <div class="modal-actions">
@@ -74,42 +86,37 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
 
 const loading = ref(false)
-const news = ref([])
+const newsList = ref([])
 const showModal = ref(false)
 const isEditing = ref(false)
 const editingId = ref(null)
 
-const form = ref({
-  titulo: '',
-  descripcion: '',
-  fecha: ''
+const token = localStorage.getItem('colonia_token')
+const api = axios.create({
+  baseURL: 'http://54.227.139.118:3000/api',
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
 })
 
-// Datos temporales
-const exampleNews = [
-  {
-    id: 1,
-    titulo: 'Nueva caseta de vigilancia',
-    descripcion: 'Se instalará una nueva caseta en la entrada principal.',
-    fecha: '2026-02-01'
-  },
-  {
-    id: 2,
-    titulo: 'Cambio de reglamento interno',
-    descripcion: 'Actualización del reglamento aprobado en asamblea.',
-    fecha: '2026-01-15'
-  }
-]
+const form = ref({
+  titulo: '',
+  contenido: '',
+  fecha_publicacion: '',
+  destacada: false
+})
 
 const sortedNews = computed(() =>
-  [...news.value].sort(
-    (a, b) => new Date(b.fecha) - new Date(a.fecha)
+  [...newsList.value].sort(
+    (a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion)
   )
 )
 
 const formatDate = (date) => {
+  if (!date) return ''
   return new Date(date).toLocaleDateString('es-MX', {
     day: 'numeric',
     month: 'long',
@@ -120,14 +127,24 @@ const formatDate = (date) => {
 const openCreateModal = () => {
   isEditing.value = false
   editingId.value = null
-  form.value = { titulo: '', descripcion: '', fecha: '' }
+  form.value = {
+    titulo: '',
+    contenido: '',
+    fecha_publicacion: '',
+    destacada: false
+  }
   showModal.value = true
 }
 
-const editNews = (item) => {
+const editNews = (news) => {
   isEditing.value = true
-  editingId.value = item.id
-  form.value = { ...item }
+  editingId.value = news.id
+  form.value = {
+    ...news,
+    fecha_publicacion: news.fecha_publicacion
+      ? news.fecha_publicacion.split('T')[0]
+      : ''
+  }
   showModal.value = true
 }
 
@@ -135,40 +152,55 @@ const closeModal = () => {
   showModal.value = false
 }
 
-const saveNews = () => {
-  if (!form.value.titulo || !form.value.fecha) {
+const saveNews = async () => {
+  if (!form.value.titulo || !form.value.fecha_publicacion) {
     alert('Título y fecha son obligatorios')
     return
   }
 
-  if (isEditing.value) {
-    const index = news.value.findIndex(n => n.id === editingId.value)
-    news.value[index] = { ...form.value, id: editingId.value }
-  } else {
-    news.value.push({
-      ...form.value,
-      id: Date.now()
-    })
-  }
+  try {
+    if (isEditing.value) {
+      await api.put(`/noticias/${editingId.value}`, form.value)
+    } else {
+      await api.post('/noticias', form.value)
+    }
 
-  closeModal()
-}
-
-const deleteNews = (id) => {
-  if (confirm('¿Eliminar esta noticia?')) {
-    news.value = news.value.filter(n => n.id !== id)
+    const response = await api.get('/noticias')
+    newsList.value = response.data.data
+    closeModal()
+  } catch (error) {
+    console.error('Error guardando noticia:', error)
+    alert('Error al guardar la noticia')
   }
 }
 
-onMounted(() => {
+const deleteNews = async (id) => {
+  if (!confirm('¿Seguro que quieres eliminar esta noticia?')) return
+
+  try {
+    await api.delete(`/noticias/${id}`)
+    newsList.value = newsList.value.filter(n => n.id !== id)
+  } catch (error) {
+    console.error('Error eliminando noticia:', error)
+    alert('Error al eliminar')
+  }
+}
+
+onMounted(async () => {
   loading.value = true
-  news.value = exampleNews
-  loading.value = false
+  try {
+    const response = await api.get('/noticias')
+    newsList.value = response.data.data
+  } catch (error) {
+    console.error('Error cargando noticias:', error)
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
 <style scoped>
-.news-view {
+.news-admin-view {
   max-width: 1000px;
   margin: 0 auto;
 }
@@ -178,31 +210,6 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 25px;
-}
-
-.news-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.news-card {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  display: flex;
-  justify-content: space-between;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-
-.news-date {
-  font-size: 0.9rem;
-  color: #666;
-}
-
-.news-actions {
-  display: flex;
-  gap: 10px;
 }
 
 .btn-primary {
@@ -222,6 +229,26 @@ onMounted(() => {
   cursor: pointer;
 }
 
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.news-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.news-actions {
+  display: flex;
+  gap: 10px;
+}
+
 .btn-edit {
   background: #f57c00;
   color: white;
@@ -238,6 +265,12 @@ onMounted(() => {
   padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #666;
 }
 
 .modal-overlay {
@@ -271,5 +304,11 @@ input, textarea {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.news-badge {
+  color: #856404;
+  font-weight: 600;
+  margin-top: 5px;
 }
 </style>

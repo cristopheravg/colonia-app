@@ -6,6 +6,10 @@ import { testConnection } from './config/database.js';
 // Importar rutas
 import authRoutes from './routes/authRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import eventRoutes from './routes/eventsRoutes.js'; 
+import newsRoutes from './routes/newsRoutes.js'; 
+
+
 
 // Configurar variables de entorno
 dotenv.config();
@@ -36,6 +40,11 @@ app.get('/', (req, res) => {
 // Rutas de la API
 app.use('/api/auth', authRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/eventos', eventRoutes); 
+app.use('/api/noticias', newsRoutes); 
+
+
+
 
 // Ruta 404
 app.use((req, res) => {

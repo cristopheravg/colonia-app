@@ -15,9 +15,9 @@
         class="event-card"
       >
         <div class="event-info">
-          <h3>{{ event.titulo }}</h3>
+          <h3>{{ event.nombre }}</h3>
           <p class="event-date">
-            📅 {{ formatDate(event.fecha) }}
+            📅 {{ formatDate(event.fecha_inicio) }}
           </p>
           <p class="event-description">
             {{ event.descripcion }}
@@ -50,7 +50,7 @@
 
         <div class="form-group">
           <label>Título</label>
-          <input v-model="form.titulo" type="text" />
+          <input v-model="form.nombre" type="text" />
         </div>
 
         <div class="form-group">
@@ -60,7 +60,7 @@
 
         <div class="form-group">
           <label>Fecha</label>
-          <input v-model="form.fecha" type="date" />
+          <input v-model="form.fecha_inicio" type="date" />
         </div>
 
         <div class="modal-actions">
@@ -78,6 +78,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
 
 const loading = ref(false)
 const events = ref([])
@@ -85,31 +86,29 @@ const showModal = ref(false)
 const isEditing = ref(false)
 const editingId = ref(null)
 
-const form = ref({
-  titulo: '',
-  descripcion: '',
-  fecha: ''
+const token = localStorage.getItem('colonia_token')
+const api = axios.create({
+  baseURL: 'http://54.227.139.118:3000/api',
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
 })
 
-// Simulación backend temporal
-const exampleEvents = [
-  {
-    id: 1,
-    titulo: 'Reunión Vecinal',
-    descripcion: 'Se discutirán mejoras en seguridad.',
-    fecha: '2026-03-10'
-  },
-  {
-    id: 2,
-    titulo: 'Mantenimiento Áreas Verdes',
-    descripcion: 'Jornada de limpieza comunitaria.',
-    fecha: '2026-02-20'
-  }
-]
+
+const form = ref({
+  nombre: '',
+  descripcion: '',
+  fecha_inicio: '',
+  fecha_fin: '',
+  lugar: '',
+  max_asistentes: 0
+})
+
+
 
 const sortedEvents = computed(() =>
   [...events.value].sort(
-    (a, b) => new Date(a.fecha) - new Date(b.fecha)
+    (a, b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio)
   )
 )
 
@@ -125,54 +124,90 @@ const formatDate = (date) => {
 const openCreateModal = () => {
   isEditing.value = false
   editingId.value = null
-  form.value = { titulo: '', descripcion: '', fecha: '' }
+  form.value = {
+    nombre: '',
+    descripcion: '',
+    fecha_inicio: '',
+    fecha_fin: '',
+    lugar: '',
+    max_asistentes: 0
+  }
   showModal.value = true
 }
 
 const editEvent = (event) => {
   isEditing.value = true
   editingId.value = event.id
-  form.value = { ...event }
+
+  form.value = {
+    ...event,
+    fecha_inicio: event.fecha_inicio
+      ? event.fecha_inicio.split('T')[0]
+      : '',
+    fecha_fin: event.fecha_fin
+      ? event.fecha_fin.split('T')[0]
+      : ''
+  }
+
   showModal.value = true
 }
+
 
 const closeModal = () => {
   showModal.value = false
 }
 
-const saveEvent = () => {
-  if (!form.value.titulo || !form.value.fecha) {
+const saveEvent = async () => {
+  if (!form.value.nombre || !form.value.fecha_inicio) {
     alert('Título y fecha son obligatorios')
     return
   }
 
-  if (isEditing.value) {
-    const index = events.value.findIndex(e => e.id === editingId.value)
-    events.value[index] = { ...form.value, id: editingId.value }
-  } else {
-    events.value.push({
-      ...form.value,
-      id: Date.now()
-    })
-  }
+  try {
+    if (isEditing.value) {
+      await api.put(`/eventos/${editingId.value}`, form.value)
+    } else {
+      await api.post('/eventos', form.value)
+    }
 
-  closeModal()
+    const response = await api.get('/eventos')
+
+    events.value = response.data.data
+
+    closeModal()
+  } catch (error) {
+    console.error('Error guardando evento:', error)
+    alert('Error al guardar el evento')
+  }
 }
 
-const deleteEvent = (id) => {
-  if (confirm('¿Seguro que quieres eliminar este evento?')) {
+
+const deleteEvent = async (id) => {
+  if (!confirm('¿Seguro que quieres eliminar este evento?')) return
+
+  try {
+    await api.delete(`/eventos/${id}`)
     events.value = events.value.filter(e => e.id !== id)
+  } catch (error) {
+    console.error('Error eliminando evento:', error)
+    alert('Error al eliminar')
   }
 }
 
-onMounted(() => {
+
+onMounted(async () => {
   loading.value = true
 
-  // Aquí irá tu API real
-  events.value = exampleEvents
-
-  loading.value = false
+  try {
+    const response = await api.get('/eventos')
+    events.value = response.data.data
+  } catch (error) {
+    console.error('Error cargando eventos:', error)
+  } finally {
+    loading.value = false
+  }
 })
+
 </script>
 
 <style scoped>
