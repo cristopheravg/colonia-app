@@ -31,32 +31,20 @@ const routes = [
   },
 
 
-  {
-    path: '/',
-    name: 'root',
-    beforeEnter: (to, from, next) => {
+  { path: '/', name: 'root', beforeEnter: (to, from, next) => {
       const token = localStorage.getItem('colonia_token')
-
-
-      if (!token) {
-        return next('/login')
-      }
-
-      let user  = null
-
+      if (!token) return next('/login')
+      
       try {
-        user = jwtDecode(token)
-      } catch(error){
+        const user = jwtDecode(token)
+        if (user?.rol === 'admin') return next('/admin')
+        if (user?.rol === 'vecino') return next('/balance')
+      } catch {
         return next('/login')
       }
+      next()
+  }},
 
-      if (user?.rol === 'admin') {
-        return next('/admin/')
-      }
-
-      return next('/balance')
-    }
-  },
 
 
   {
@@ -122,18 +110,27 @@ router.beforeEach((to, from, next) => {
     return next('/login')
   }
 
-  if (to.path.startsWith('/admin')) {
+  if (token) {
+    let user = null
     try {
-      const user = jwtDecode(token)
-      if (user?.rol !== 'admin') {
-        return next('/balance')
-      }
+      user = jwtDecode(token)
     } catch {
       return next('/login')
+    }
+
+    // Evitar loops: si ya está en la ruta correcta, no redirigir
+    if (to.path.startsWith('/admin') && user.rol !== 'admin') {
+      return next('/balance')
+    }
+
+    if ((to.path === '/balance' || !to.path.startsWith('/admin')) && user.rol === 'admin') {
+      return next('/admin')
     }
   }
 
   next()
 })
+
+
 
 export default router

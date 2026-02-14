@@ -64,20 +64,30 @@ const clearError = () => {
 
 const handleLogin = async () => {
   isLoading.value = true
-  
+
   const result = await authStore.login({
     email: email.value,
     password: password.value
   })
-  
+
   if (result.success) {
-    router.push('/balance')
+    // obtener el rol del usuario desde result.user o desde el token
+    const rol = result.user?.rol || null
+
+    if (rol === 'admin') {
+      router.push('/admin')
+    } else if (rol === 'vecino') {
+      router.push('/balance')
+    } else {
+      router.push('/') // fallback por si algo raro
+    }
   } else {
     error.value = result.error
   }
-  
+
   isLoading.value = false
 }
+
 </script>
 
 <style scoped>

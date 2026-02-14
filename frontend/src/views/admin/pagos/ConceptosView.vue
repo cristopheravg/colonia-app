@@ -177,20 +177,32 @@ const editarConcepto = (concepto) => {
 
 const guardarConcepto = async () => {
   try {
-    if (modoEdicion.value) {
-      await api.put(`/conceptos/${form.value.id}`, form.value)
-    } else {
-      await api.post('/conceptos', form.value)
+    // Validación mínima antes de enviar
+    if (!form.value.nombre || !form.value.tipo || !form.value.total) {
+      alert('Faltan campos obligatorios')
+      return
     }
 
+    let response
+    if (modoEdicion.value) {
+      response = await api.put(`/conceptos/${form.value.id}`, form.value)
+      alert(response.data.message || 'Concepto actualizado')
+    } else {
+      response = await api.post('/conceptos', form.value)
+      alert(response.data.message || 'Concepto creado')
+    }
+
+    // Refrescar lista y cerrar modal
     await cargarConceptos()
+    resetForm()
     mostrarModal.value = false
 
   } catch (error) {
-    console.error('Error guardando concepto:', error)
-    alert('Error al guardar concepto')
+    console.error('Error guardando concepto:', error.response?.data || error)
+    alert(error.response?.data?.message || 'Error al guardar concepto')
   }
 }
+
 
 const toggleActivo = async (concepto) => {
   try {
@@ -200,6 +212,17 @@ const toggleActivo = async (concepto) => {
     console.error('Error cambiando estado:', error)
   }
 }
+
+const cerrarModal = () => {
+  resetForm()         // Reinicia el formulario
+  mostrarModal.value = false  // Cierra el modal
+}
+
+const abrirModal = () => {
+  resetForm()         // Limpia el formulario y pone modoEdicion en false
+  mostrarModal.value = true  // Abre el modal
+}
+
 
 /* ✅ ahora sí existe */
 onMounted(cargarConceptos)
