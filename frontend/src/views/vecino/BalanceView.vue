@@ -36,11 +36,11 @@
       </div>
       
       <!-- Detalle por Concepto -->
-      <div class="concepts-section" v-if="!loading && balance.detalle?.length">
+      <div class="concepts-section" v-if="!loading && detalleOrdenado?.length">
         <h2>Detalle por Concepto</h2>
         
         <div class="concepts-list">
-          <div class="concept-card" v-for="(item, index) in balance.detalle" :key="index">
+          <div class="concept-card" v-for="(item, index) in detalleOrdenado" :key="index">
             <div class="concept-header">
               <h3>{{ item.concepto || 'Concepto sin nombre' }}</h3>
               <span class="concept-status" :class="getStatusClass(item)">
@@ -80,31 +80,12 @@
       </div>
       
       <!-- Sin datos -->
-      <div class="empty-state" v-if="!loading && (!balance.detalle || !balance.detalle.length)">
+      <div class="empty-state" v-if="!loading && (!detalleOrdenado || !detalleOrdenado.length)">
         <div class="empty-icon">📊</div>
         <h3>No hay conceptos de pago activos</h3>
         <p>Actualmente no tienes conceptos de pago asignados.</p>
       </div>
       
-      <!-- Historial reciente -->
-      <div class="history-section" v-if="!loading && recentPayments.length">
-        <h2>Historial Reciente</h2>
-        
-        <div class="history-list">
-          <div class="history-item" v-for="payment in recentPayments" :key="payment.id">
-            <div class="history-icon" :class="payment.estado">
-              {{ payment.estado === 'pagado' ? '✅' : '⏳' }}
-            </div>
-            <div class="history-content">
-              <h4>{{ payment.concepto || 'Pago' }}</h4>
-              <p>${{ formatCurrency(payment.monto || 0) }} • {{ formatDate(payment.fecha_pago) }}</p>
-            </div>
-            <div class="history-amount">
-              ${{ formatCurrency(payment.monto || 0) }}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </AppLayout>
 </template>
@@ -115,165 +96,203 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import { paymentService } from '@/services/paymentService'
 
 const loading = ref(true)
-const balance = ref({ detalle: [], resumen: {} })
+
+const balance = ref({
+  detalle: [],
+  resumen: {}
+})
+
 const paymentHistory = ref([])
 
-// Datos de ejemplo mientras se conecta al backend
-const exampleData = {
-  detalle: [
-    {
-      concepto: 'Aportación Anual 2024',
-      total_concepto: 1200.00,
-      total_pagado: 1200.00,
-      saldo_pendiente: 0.00,
-      pagos_realizados: 1,
-      estado: 'Completado'
-    },
-    {
-      concepto: 'Acometida Eléctrica',
-      total_concepto: 3600.00,
-      total_pagado: 1200.00,
-      saldo_pendiente: 2400.00,
-      pagos_realizados: 2,
-      estado: '2/6'
-    },
-    {
-      concepto: 'Fondo de Emergencia',
-      total_concepto: 2400.00,
-      total_pagado: 600.00,
-      saldo_pendiente: 1800.00,
-      pagos_realizados: 1,
-      estado: '1/12'
-    }
-  ],
-  resumen: {
-    totalPagado: 3000.00,
-    totalPendiente: 4200.00,
-    totalConceptos: 7200.00,
-    conceptosActivos: 3
-  }
-}
 
-const exampleHistory = [
-  {
-    id: 1,
-    concepto: 'Aportación Anual 2024',
-    monto: 1200.00,
-    fecha_pago: '2024-01-05T10:00:00',
-    estado: 'pagado'
-  },
-  {
-    id: 2,
-    concepto: 'Acometida Eléctrica - Mensualidad 1',
-    monto: 600.00,
-    fecha_pago: '2024-01-10T11:30:00',
-    estado: 'pagado'
-  },
-  {
-    id: 3,
-    concepto: 'Acometida Eléctrica - Mensualidad 2',
-    monto: 600.00,
-    fecha_pago: '2024-02-01T09:15:00',
-    estado: 'pagado'
-  }
-]
-
+// resumen seguro
 const summary = computed(() => balance.value.resumen || {})
-const recentPayments = computed(() => paymentHistory.value.slice(0, 3))
 
+
+// ordenar conceptos:
+// pendiente → parcial → completado
+// dentro del mismo estado: mayor deuda primero
+const detalleOrdenado = computed(() => {
+
+  if (!balance.value.detalle) return []
+
+  return [...balance.value.detalle].sort((a, b) => {
+
+    const saldoA = parseFloat(a.saldo_pendiente || 0)
+    const saldoB = parseFloat(b.saldo_pendiente || 0)
+
+    const totalA = parseFloat(a.total_concepto || 0)
+    const totalB = parseFloat(b.total_concepto || 0)
+
+    const estadoA =
+      saldoA <= 0 ? 3 :
+      saldoA < totalA ? 2 :
+      1
+
+    const estadoB =
+      saldoB <= 0 ? 3 :
+      saldoB < totalB ? 2 :
+      1
+
+    if (estadoA !== estadoB) {
+      return estadoA - estadoB
+    }
+
+    return saldoB - saldoA
+
+  })
+
+})
+
+
+// últimos pagos
+const recentPayments = computed(() =>
+  paymentHistory.value.slice(0, 3)
+)
+
+
+// última actualización
 const lastUpdate = computed(() => {
+
   const now = new Date()
+
   return now.toLocaleDateString('es-MX', {
     hour: '2-digit',
     minute: '2-digit'
   })
+
 })
 
+
+// utilidades
 const formatCurrency = (amount) => {
-  return parseFloat(amount).toFixed(2)
+  return parseFloat(amount || 0).toFixed(2)
 }
 
+
 const formatDate = (dateString) => {
+
   if (!dateString) return 'Fecha no disponible'
+
   try {
+
     const date = new Date(dateString)
+
     return date.toLocaleDateString('es-MX', {
       day: 'numeric',
       month: 'short',
       year: 'numeric'
     })
-  } catch (error) {
+
+  } catch {
+
     return 'Fecha inválida'
+
   }
+
 }
 
+
+// progreso %
 const getProgress = (item) => {
+
   const total = parseFloat(item.total_concepto || 0)
   const paid = parseFloat(item.total_pagado || 0)
+
   if (total === 0) return 0
-  const progress = (paid / total) * 100
-  return Math.min(Math.round(progress), 100)
+
+  return Math.min(Math.round((paid / total) * 100), 100)
+
 }
 
+
+// clase de estado
 const getStatusClass = (item) => {
+
   const saldo = parseFloat(item.saldo_pendiente || 0)
-  const total = parseFloat(item.total_concepto || 1)
-  
+  const total = parseFloat(item.total_concepto || 0)
+
   if (saldo <= 0) return 'status-completed'
   if (saldo < total) return 'status-partial'
+
   return 'status-pending'
+
 }
 
+
+// texto estado
 const getStatusText = (item) => {
+
   const saldo = parseFloat(item.saldo_pendiente || 0)
-  
-  if (saldo <= 0) return 'Completado'
-  
+
+  if (saldo <= 0)
+    return 'Completado'
+
+  if (item.estado)
+    return item.estado
+
   const pagos = item.pagos_realizados || 0
-  const estado = item.estado || ''
-  
-  if (estado && typeof estado === 'string') {
-    return estado
-  }
-  
-  if (pagos > 0) {
+
+  if (pagos > 0)
     return `${pagos} pagos realizados`
-  }
-  
+
   return 'Pendiente'
+
 }
 
+
+// cargar datos reales
 const loadBalanceData = async () => {
+
   loading.value = true
-  
+
   try {
-    // Intentar cargar datos reales del backend
+
     const response = await paymentService.getBalance()
-    console.log('Datos del backend:', response)
-    
-    if (response && response.success) {
-      balance.value = response.data || exampleData
+
+    console.log('Balance API:', response)
+
+    if (response?.success) {
+
+      balance.value = response.data || {
+        detalle: [],
+        resumen: {}
+      }
+
     } else {
-      // Usar datos de ejemplo si falla
-      balance.value = exampleData
+
+      balance.value = {
+        detalle: [],
+        resumen: {}
+      }
+
     }
+
   } catch (error) {
+
     console.error('Error cargando balance:', error)
-    // Usar datos de ejemplo
-    balance.value = exampleData
+
+    balance.value = {
+      detalle: [],
+      resumen: {}
+    }
+
   }
-  
-  // Cargar historial (por ahora datos de ejemplo)
-  paymentHistory.value = exampleHistory
-  
+
   loading.value = false
+
 }
 
+
+// init
 onMounted(() => {
-  console.log('BalanceView montado')
+
   loadBalanceData()
+
 })
 </script>
+
+
 
 <style scoped>
 /* Mantener todos los estilos iguales */
@@ -391,12 +410,15 @@ h1 {
 }
 
 .concepts-section {
-  margin-bottom: 30px;
+  margin-bottom: 50px;
+  margin-top: 50px;
+
 }
 
 .concepts-section h2 {
   color: #333;
   margin-bottom: 20px;
+    text-align: center;
 }
 
 .concepts-list {
@@ -423,7 +445,8 @@ h1 {
 .concept-header h3 {
   margin: 0;
   color: #333;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  font-weight:bold;
 }
 
 .concept-status {

@@ -8,6 +8,9 @@ import authRoutes from './routes/authRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import eventRoutes from './routes/eventsRoutes.js'; 
 import newsRoutes from './routes/newsRoutes.js'; 
+import otpRoutes from './routes/otpRoutes.js'
+import userRoutes from './routes/usersRoutes.js';
+import conceptsRoutes from './routes/conceptsRoutes.js'
 
 
 
@@ -39,9 +42,12 @@ app.get('/', (req, res) => {
 
 // Rutas de la API
 app.use('/api/auth', authRoutes);
+app.use('/api/usuarios', userRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/eventos', eventRoutes); 
 app.use('/api/noticias', newsRoutes); 
+app.use('/', otpRoutes)
+app.use('/api/conceptos', conceptsRoutes)
 
 
 

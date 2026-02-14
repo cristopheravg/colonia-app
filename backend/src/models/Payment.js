@@ -1,29 +1,41 @@
 import { pool } from '../config/database.js';
 
 export const Payment = {
+
   // Obtener estado de cuenta de un usuario
   async getBalance(userId) {
     try {
-      // Usar la vista que creamos en el script SQL
       const [rows] = await pool.execute(
         `SELECT * FROM vista_estado_cuenta WHERE usuario_id = ?`,
         [userId]
       );
-      
+
+      // Convertir cualquier Buffer a string
+      const detalle = rows.map(row => {
+        const newRow = { ...row };
+        for (const key in newRow) {
+          if (Buffer.isBuffer(newRow[key])) {
+            newRow[key] = newRow[key].toString('utf-8');
+          }
+        }
+        return newRow;
+      });
+
       // Calcular totales
-      const totalPagado = rows.reduce((sum, item) => sum + parseFloat(item.total_pagado || 0), 0);
-      const totalPendiente = rows.reduce((sum, item) => sum + parseFloat(item.saldo_pendiente || 0), 0);
-      const totalConceptos = rows.reduce((sum, item) => sum + parseFloat(item.total_concepto || 0), 0);
-      
+      const totalPagado = detalle.reduce((sum, item) => sum + parseFloat(item.total_pagado || 0), 0);
+      const totalPendiente = detalle.reduce((sum, item) => sum + parseFloat(item.saldo_pendiente || 0), 0);
+      const totalConceptos = detalle.reduce((sum, item) => sum + parseFloat(item.total_concepto || 0), 0);
+
       return {
-        detalle: rows,
+        detalle,
         resumen: {
           totalPagado,
           totalPendiente,
           totalConceptos,
-          conceptosActivos: rows.length
+          conceptosActivos: detalle.length
         }
       };
+
     } catch (error) {
       console.error('Error en getBalance:', error);
       throw error;
@@ -50,7 +62,20 @@ export const Payment = {
         ORDER BY p.fecha_pago DESC`,
         [userId]
       );
-      return rows;
+
+      // Convertir buffers a strings
+      const history = rows.map(row => {
+        const newRow = { ...row };
+        for (const key in newRow) {
+          if (Buffer.isBuffer(newRow[key])) {
+            newRow[key] = newRow[key].toString('utf-8');
+          }
+        }
+        return newRow;
+      });
+
+      return history;
+
     } catch (error) {
       console.error('Error en getHistory:', error);
       throw error;
@@ -69,6 +94,7 @@ export const Payment = {
       );
       
       return { id: result.insertId, ...paymentData, estado: 'pagado' };
+
     } catch (error) {
       console.error('Error en create:', error);
       throw error;
@@ -81,7 +107,20 @@ export const Payment = {
       const [rows] = await pool.execute(
         `SELECT * FROM conceptos_pago WHERE activo = TRUE ORDER BY nombre`
       );
-      return rows;
+
+      // Convertir buffers a strings
+      const concepts = rows.map(row => {
+        const newRow = { ...row };
+        for (const key in newRow) {
+          if (Buffer.isBuffer(newRow[key])) {
+            newRow[key] = newRow[key].toString('utf-8');
+          }
+        }
+        return newRow;
+      });
+
+      return concepts;
+
     } catch (error) {
       console.error('Error en getConcepts:', error);
       throw error;

@@ -20,7 +20,7 @@ export const User = {
   async findById(id) {
     try {
       const [rows] = await pool.execute(
-        'SELECT id, nombre, correo, direccion, rol, created_at FROM usuarios WHERE id = ?',
+        'SELECT id, nombre, apellidos, correo, direccion, rol, created_at FROM usuarios WHERE id = ?',
         [id]
       );
       return rows[0] || null;
@@ -59,7 +59,7 @@ export const User = {
   async getAll() {
     try {
       const [rows] = await pool.execute(
-        'SELECT id, nombre, correo, direccion, rol, created_at FROM usuarios ORDER BY nombre'
+        'SELECT id, nombre, apellidos, correo, direccion, rol, created_at FROM usuarios ORDER BY nombre'
       );
       return rows;
     } catch (error) {
@@ -73,7 +73,7 @@ export const User = {
     try {
       const { nombre, correo, direccion } = userData;
       const [result] = await pool.execute(
-        'UPDATE usuarios SET nombre = ?, correo = ?, direccion = ? WHERE id = ?',
+        'UPDATE usuarios SET nombre = ?, apellidos = ?, correo = ?, direccion = ? WHERE id = ?',
         [nombre, correo, direccion, id]
       );
       return result.affectedRows > 0;

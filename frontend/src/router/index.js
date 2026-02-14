@@ -13,13 +13,14 @@ const QRView = () => import('@/views/vecino/QRView.vue')
 
 // Admin views
 const AdminLayout = () => import('@/views/admin/AdminLayout.vue')
-const UsuariosIndex = () => import('@/views/admin/usuarios/UsuariosIndex.vue')
-const UsuarioForm = () => import('@/views/admin/usuarios/UsuarioForm.vue')
+const UsuariosIndex = () => import('@/views/admin/usuarios/ListaUsuarios.vue')
 const ActiveEventsView = () => import('@/views/admin/eventos/ActiveEventsView.vue')
 const ActiveNewsView = () => import('@/views/admin/noticias/ActiveNewsView.vue')
-const PaymentsView = () => import('@/views/admin/pagos/AdminPagosView.vue')
-const PaymentsConceptsView = () => import('@/views/admin/pagos/components/ConceptosTab.vue')
-const PaymentsUserView = () => import('@/views/admin/pagos/components/PagosUsuariosTab.vue')
+
+const AdminPagosView = ()  => import('@/views/admin/pagos/AdminPagosView.vue')
+const ConceptosView = () => import('@/views/admin/pagos/ConceptosView.vue')
+const UsuariosPagosView = () => import('@/views/admin/pagos/UsuariosPagosView.vue')
+
 
 const routes = [
   {
@@ -92,13 +93,13 @@ const routes = [
     children: [
       { path: '', redirect: '/admin/usuarios' },
       { path: 'usuarios', component: UsuariosIndex },
-      { path: 'usuarios/create', component: UsuarioForm },
-      { path: 'usuarios/:id/edit', component: UsuarioForm },
       { path: 'eventos', component: ActiveEventsView },
       { path: 'noticias', component: ActiveNewsView },
-      { path: 'pagos', component: PaymentsView },
-      { path: 'pagos/conceptos', component: PaymentsConceptsView },
-      { path: 'pagos/abonar', component: PaymentsUserView  }
+      // 🔹 PAGOS
+      { path: 'pagos', component: AdminPagosView },
+      { path: 'pagos/conceptos', component: ConceptosView },
+      { path: 'pagos/usuario/:id?', name: 'admin-pagos-usuario', component: UsuariosPagosView, props: true }
+
     ]
   }
 
@@ -114,12 +115,22 @@ const router = createRouter({
 
 
 
-// Guard de navegación
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('colonia_token')
 
   if (to.meta.requiresAuth && !token) {
     return next('/login')
+  }
+
+  if (to.path.startsWith('/admin')) {
+    try {
+      const user = jwtDecode(token)
+      if (user?.rol !== 'admin') {
+        return next('/balance')
+      }
+    } catch {
+      return next('/login')
+    }
   }
 
   next()

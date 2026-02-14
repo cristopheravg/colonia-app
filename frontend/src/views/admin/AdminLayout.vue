@@ -3,8 +3,18 @@
     
     <!-- Header -->
     <header class="admin-header">
-      <h1 class="admin-title">Panel de Administración</h1>
-      <p class="admin-subtitle">Gestión de la colonia</p>
+      <div class="header-top">
+        <div>
+          <h1 class="admin-title">Panel de Administración</h1>
+          <p class="admin-subtitle">Gestión de la colonia</p>
+        </div>
+
+        <!-- Botón de cerrar sesión -->
+        <button class="logout-button" @click="logout" :disabled="loggingOut">
+          <LogOut class="logout-icon" />
+          Cerrar sesión
+        </button>
+      </div>
     </header>
 
     <!-- Contenido dinámico -->
@@ -39,14 +49,33 @@
 </template>
 
 <script setup>
-import { Users, Calendar, CreditCard, Newspaper } from 'lucide-vue-next'
+import { Users, Calendar, CreditCard, Newspaper, LogOut } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { ref } from 'vue'
+import { authService } from '../../services/authService.js'
+
+const router = useRouter()
+const loggingOut = ref(false)
+
+const logout = async () => {
+  loggingOut.value = true
+  try {
+    await authService.logout()
+    localStorage.removeItem('colonia_token')
+    localStorage.removeItem('colonia_user')
+    router.push('/login')
+  } catch (error) {
+    console.error('Error cerrando sesión:', error)
+    alert('No se pudo cerrar sesión, intenta de nuevo')
+  } finally {
+    loggingOut.value = false
+  }
+}
 </script>
 
 <style scoped>
-
 .admin-layout {
   min-height: 100vh;
-  
   display: flex;
   flex-direction: column;
   background: #f8fafc;
@@ -54,12 +83,16 @@ import { Users, Calendar, CreditCard, Newspaper } from 'lucide-vue-next'
 }
 
 /* HEADER */
-
 .admin-header {
-  padding: 24px 20px 12px;
   background: white;
   border-bottom: 1px solid #e2e8f0;
-  width: 100%;
+  padding: 24px 20px 12px;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .admin-title {
@@ -76,8 +109,39 @@ import { Users, Calendar, CreditCard, Newspaper } from 'lucide-vue-next'
   color: #64748b;
 }
 
-/* CONTENT */
+/* Botón de cerrar sesión */
+.logout-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
 
+.logout-button:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.logout-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.logout-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.5;
+}
+
+/* CONTENT */
 .admin-content {
   flex: 1;
   padding: 20px;
@@ -88,7 +152,6 @@ import { Users, Calendar, CreditCard, Newspaper } from 'lucide-vue-next'
 }
 
 /* BOTTOM NAV */
-
 .admin-bottom-nav {
   position: fixed;
   bottom: 0;
@@ -129,21 +192,18 @@ import { Users, Calendar, CreditCard, Newspaper } from 'lucide-vue-next'
 }
 
 /* Desktop enhancement */
-
 @media (min-width: 768px) {
-
   .admin-header {
     padding: 28px 40px 20px;
   }
 
   .admin-content {
     padding: 40px;
+    margin-bottom: 120px;
   }
 
   .admin-bottom-nav {
     height: 70px;
   }
-
 }
-
 </style>

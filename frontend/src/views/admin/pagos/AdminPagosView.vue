@@ -1,58 +1,44 @@
 <template>
-  <div class="admin-pagos">
-    <h1>Gestión de Pagos</h1>
+  <div class="card-grid">
 
-    <!-- Tabs -->
-    <div class="tabs">
-      <button
-        :class="{ active: activeTab === 'conceptos' }"
-        @click="activeTab = 'conceptos'"
-      >
-        Conceptos
-      </button>
+    <router-link 
+      to="/admin/pagos/conceptos" 
+      class="card"
+    >
+      <h3>Conceptos</h3>
+      <p>Crear y administrar cuotas</p>
+    </router-link>
 
-      <button
-        :class="{ active: activeTab === 'usuarios' }"
-        @click="activeTab = 'usuarios'"
-      >
-        Pagos por Usuario
-      </button>
-    </div>
+    <router-link 
+      :to="{ name: 'admin-pagos-usuario' }"
+      class="card"
+    >
+      <h3>Usuarios</h3>
+      <p>Consultar estado y registrar pagos</p>
+    </router-link>
 
-    <!-- CONTENIDO -->
-    <div class="tab-content">
-      <ConceptosTab v-if="activeTab === 'conceptos'" />
-      <PagosUsuariosTab v-if="activeTab === 'usuarios'" />
-    </div>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue'
-import ConceptosTab from './components/ConceptosTab.vue'
-import PagosUsuariosTab from './components/PagosUsuariosTab.vue'
 
-const activeTab = ref('conceptos')
-</script>
 
 <style scoped>
-.admin-pagos {
+.card-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.card {
+  background: white;
   padding: 20px;
+  border-radius: 14px;
+  text-decoration: none;
+  color: #0f172a;
+  box-shadow: 0 4px 12px rgba(15,23,42,0.05);
+  transition: 0.2s;
 }
 
-.tabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.tabs button {
-  padding: 8px 16px;
-  cursor: pointer;
-}
-
-.tabs .active {
-  background-color: #333;
-  color: white;
+.card:hover {
+  transform: translateY(-4px);
 }
 </style>

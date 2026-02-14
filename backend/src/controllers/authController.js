@@ -51,6 +51,7 @@ export const authController = {
       const userWithoutPassword = {
         id: user.id,
         nombre: user.nombre,
+        apellidos: user.apellidos,
         email: user.correo,
         direccion: user.direccion,
         rol: user.rol,
