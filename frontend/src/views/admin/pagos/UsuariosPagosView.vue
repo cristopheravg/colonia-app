@@ -1,441 +1,461 @@
-
-
 <template>
-  <div class="pagos-container">
-    <!-- Título -->
-    <h1 class="page-title">Registrar Pagos</h1>
+  <div class="container">
+    <h1 class="title">Vecinos</h1>
 
-    <!-- Selector de Usuario -->
-    <div class="card">
-      <h3>Seleccionar Usuario</h3>
-      <select v-model="selectedUser" @change="cargarPagos" class="form-control">
-        <option value="">-- Elige un usuario --</option>
-        <option v-for="user in usuarios" :key="user.id" :value="user.id">
-          {{ user.nombre }} {{ user.apellidos || '' }}
-        </option>
-      </select>
+    <!-- Usuarios -->
+    <div class="usuarios-list">
+      <div
+        v-for="user in usuarios"
+        :key="user.id"
+        @click="abrirModalPago(user)"
+        class="usuario-card"
+      >
+        <div>
+          <h3>{{ user.nombre }} {{ user.apellidos }}</h3>
+          <p>Vecino #{{ user.numero_vecino }}</p>
+        </div>
+        <span class="arrow">›</span>
+      </div>
     </div>
 
-    <!-- Mostrar si hay usuario seleccionado -->
-    <div v-if="selectedUser">
-      <!-- Mensaje de carga -->
-      <div v-if="cargando" class="card loading">
-        <p>Cargando pagos...</p>
-      </div>
+    <!-- Modal -->
+    <div v-if="modalVisible" class="modal-overlay">
+      <div class="modal">
 
-      <!-- Si no hay pagos -->
-      <div v-else-if="pagos.length === 0" class="card empty">
-        <p>Este usuario no tiene pagos registrados</p>
-      </div>
-
-      <!-- Lista de pagos -->
-      <div v-else class="card">
-        <h3>Pagos de {{ nombreUsuario }}</h3>
-        
-        <!-- Totales -->
-        <div class="totales">
-          <div class="total-item">
-            <span>Total Pagado:</span>
-            <strong>${{ totalPagado }}</strong>
-          </div>
-          <div class="total-item">
-            <span>Total Pendiente:</span>
-            <strong>${{ totalPendiente }}</strong>
-          </div>
+        <div class="modal-header">
+          <h2>{{ selectedUser.nombre }} {{ selectedUser.apellidos }}</h2>
+          <button @click="cerrarModal">✕</button>
         </div>
 
-        <!-- Lista de conceptos -->
-        <div class="conceptos">
-          <div v-for="pago in pagos" :key="pago.id" class="concepto">
-            <div class="concepto-header">
-              <span class="concepto-nombre">{{ pago.nombre }}</span>
-              <span class="badge" :class="pago.pendiente === 0 ? 'badge-success' : 'badge-warning'">
-                {{ pago.pendiente === 0 ? 'Pagado' : 'Pendiente' }}
-              </span>
-            </div>
-            
-            <div class="concepto-detalles">
-              <div>Total: ${{ pago.total }}</div>
-              <div>Pagado: ${{ pago.pagado }}</div>
-              <div class="pendiente">Pendiente: ${{ pago.pendiente }}</div>
-            </div>
+        <div v-if="cargando" class="loading">Cargando...</div>
 
-            <!-- Botón para pagar -->
-            <button v-if="pago.pendiente > 0" 
-                    @click="seleccionarConcepto(pago)"
-                    class="btn-pagar">
-              Pagar este concepto
+        <div v-else>
+          <!-- Balance -->
+          <h3 class="section-title">Balance</h3>
+
+          <div class="balance-list">
+            <div v-for="pago in pagos" :key="pago.id" class="balance-card">
+
+              <div class="balance-top">
+                <h4>{{ pago.nombre }}</h4>
+                <span
+                  :class="Number(pago.pendiente) === 0 ? 'badge-ok' : 'badge-pending'"
+                >
+                  {{ Number(pago.pendiente) === 0 ? 'Pagado' : 'Pendiente' }}
+                </span>
+              </div>
+
+              <div class="progress">
+                <div
+                  class="progress-bar"
+                  :style="{
+                    width:
+                      ((pago.parcialidades?.length || 0) /
+                        (pago.tipo === 'unico' ? 1 : pago.mensualidades)) *
+                        100 + '%'
+                  }"
+                ></div>
+              </div>
+
+              <div class="balance-info">
+                <small>Pagado: ${{ pago.pagado }}</small>
+                <small>Restante: ${{ pago.pendiente }}</small>
+              </div>
+
+              <div class="balance-info">
+                <small>
+                  Pagos:
+                  {{ pago.parcialidades?.length || 0 }}/
+                  {{ pago.tipo === 'unico' ? 1 : pago.mensualidades }}
+                </small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Formulario -->
+          <h3 class="section-title">Registrar pago</h3>
+
+          <form @submit.prevent="registrarPago" class="form">
+
+            <select v-model="conceptoSeleccionado">
+              <option
+                v-for="pago in pagos"
+                :key="pago.id"
+                :value="pago"
+              >
+                {{ pago.nombre }} - Restante: {{ pago.pendiente }}
+              </option>
+            </select>
+
+            <input
+              type="number"
+              v-model.number="monto"
+              placeholder="Monto"
+            />
+
+            <select v-model="metodo_pago">
+              <option value="efectivo">Efectivo</option>
+              <option value="transferencia">Transferencia</option>
+              <option value="tarjeta">Tarjeta</option>
+            </select>
+
+            <input
+              type="text"
+              v-model="referencia"
+              placeholder="Referencia (opcional)"
+            />
+
+            <button :disabled="!montoValido" class="btn">
+              Registrar pago
             </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Formulario de pago -->
-      <div v-if="conceptoSeleccionado" class="card form-pago">
-        <h3>Registrar Pago</h3>
-        <p><strong>Concepto:</strong> {{ conceptoSeleccionado.nombre }}</p>
-        <p><strong>Pendiente:</strong> ${{ conceptoSeleccionado.pendiente }}</p>
-        
-        <div class="form-group">
-          <label>Monto a pagar:</label>
-          <input 
-            type="number" 
-            v-model="monto" 
-            :max="conceptoSeleccionado.pendiente"
-            min="1"
-            step="0.01"
-            class="form-control"
-            placeholder="Ingrese el monto"
-          />
-        </div>
-
-        <div class="botones">
-          <button @click="registrarPago" 
-                  :disabled="!monto || monto > conceptoSeleccionado.pendiente"
-                  class="btn btn-primary">
-            Confirmar Pago
-          </button>
-          <button @click="cancelarPago" class="btn btn-secondary">
-            Cancelar
-          </button>
+          </form>
         </div>
       </div>
     </div>
 
-    <!-- Mensaje flotante -->
-    <div v-if="mensaje" class="mensaje-flotante" :class="tipoMensaje">
-      {{ mensaje }}
-    </div>
+    <div v-if="mensaje" :class="['alert', tipoMensaje]">{{ mensaje }}</div>
   </div>
 </template>
 
+
+
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import axios from 'axios'
+
+const token = localStorage.getItem('colonia_token')
+
+const api = axios.create({
+  baseURL: 'http://54.227.139.118:3000/api',
+  headers: { Authorization: `Bearer ${token}` }
+})
 
 // Estados
 const usuarios = ref([])
+const selectedUser = ref(null)
 const pagos = ref([])
-const selectedUser = ref('')
-const cargando = ref(false)
-const mensaje = ref('')
-const tipoMensaje = ref('exito')
 const conceptoSeleccionado = ref(null)
 const monto = ref(0)
+const metodo_pago = ref('efectivo')
+const referencia = ref('')
+const cargando = ref(false)
+const mensaje = ref('')
+const tipoMensaje = ref('success')
+const modalVisible = ref(false)
 
-// Computed
-const nombreUsuario = computed(() => {
-  const user = usuarios.value.find(u => u.id === selectedUser.value)
-  return user ? `${user.nombre} ${user.apellidos || ''}` : ''
+// Computed: validar monto
+const montoValido = computed(() => {
+  if (!conceptoSeleccionado.value) return false
+  const pendiente = Number(conceptoSeleccionado.value.pendiente)
+  const total = Number(conceptoSeleccionado.value.total)
+  const montoNum = Number(monto.value)
+
+  // Pago único
+  if (conceptoSeleccionado.value.tipo === 'unico') {
+    return montoNum === total
+  }
+
+  // Última parcialidad
+  if (esUltimaParcialidad(conceptoSeleccionado.value)) {
+    return montoNum === pendiente
+  }
+
+  // Parcialidades normales
+  return montoNum > 0 && montoNum <= pendiente
 })
 
-const totalPagado = computed(() => {
-  return pagos.value.reduce((sum, p) => sum + p.pagado, 0).toFixed(2)
+// Función para determinar si es última parcialidad
+const esUltimaParcialidad = (concepto) => {
+  if (!concepto) return false
+  const pagados = concepto.parcialidades ? concepto.parcialidades.length : 0
+  const mensualidades = concepto.tipo === 'unico' ? 1 : concepto.mensualidades
+  return pagados + 1 === mensualidades
+}
+
+// Watch: autocompletar monto al seleccionar concepto
+watch(conceptoSeleccionado, (nuevo) => {
+  if (!nuevo) return
+  const pendiente = Number(nuevo.pendiente)
+  const total = Number(nuevo.total)
+
+  if (nuevo.tipo === 'unico' || esUltimaParcialidad(nuevo)) {
+    monto.value = pendiente
+  } else {
+    monto.value = 0
+  }
 })
 
-const totalPendiente = computed(() => {
-  return pagos.value.reduce((sum, p) => sum + p.pendiente, 0).toFixed(2)
-})
-
-// Métodos
+// Cargar usuarios
 const cargarUsuarios = async () => {
   try {
-    const { data } = await axios.get('/api/admin/usuarios')
-    usuarios.value = data
+    const res = await api.get('/usuarios')
+    if (res.data.success && Array.isArray(res.data.data)) {
+      usuarios.value = res.data.data.filter(u => u.rol !== 'admin' && (u.activo === 1 || u.activo === '1'))
+    } else {
+      usuarios.value = []
+      mostrarMensaje('Formato de usuarios inválido', 'error')
+    }
   } catch (error) {
-    mostrarMensaje('Error al cargar usuarios', 'error')
+    console.error('Error al cargar usuarios', error)
+    mostrarMensaje('Error al cargar usuarios: ' + (error.response?.data?.message || error.message), 'error')
+    usuarios.value = []
   }
 }
 
-const cargarPagos = async () => {
-  if (!selectedUser.value) return
-  
+// Abrir modal y cargar pagos
+const abrirModalPago = async (user) => {
+  selectedUser.value = user
+  modalVisible.value = true
   cargando.value = true
+  pagos.value = []
+  conceptoSeleccionado.value = null
+  monto.value = 0
+  metodo_pago.value = 'efectivo'
+  referencia.value = ''
+
   try {
-    const { data } = await axios.get(`/api/admin/pagos/usuario/${selectedUser.value}`)
-    pagos.value = data
+    const res = await api.get(`/pagos/usuario/${user.id}`)
+    if (Array.isArray(res.data)) {
+      pagos.value = res.data
+    } else if (res.data && res.data.success && Array.isArray(res.data.data)) {
+      pagos.value = res.data.data
+    } else {
+      pagos.value = []
+      mostrarMensaje('No se encontraron pagos para este usuario', 'info')
+    }
+
+    // Seleccionar primer concepto pendiente
+    const primerPendiente = pagos.value.find(p => Number(p.pendiente) > 0)
+    if (primerPendiente) conceptoSeleccionado.value = primerPendiente
+
   } catch (error) {
+    console.error('Error al cargar pagos', error)
     mostrarMensaje('Error al cargar pagos', 'error')
+    pagos.value = []
   } finally {
     cargando.value = false
   }
 }
 
-const seleccionarConcepto = (pago) => {
-  conceptoSeleccionado.value = pago
-  monto.value = pago.pendiente // Sugerir el monto pendiente
-}
-
-const cancelarPago = () => {
+// Cerrar modal
+const cerrarModal = () => {
+  modalVisible.value = false
+  selectedUser.value = null
+  pagos.value = []
   conceptoSeleccionado.value = null
   monto.value = 0
+  metodo_pago.value = 'efectivo'
+  referencia.value = ''
 }
 
+// Registrar pago
 const registrarPago = async () => {
-  if (!monto.value || monto.value <= 0) {
+  if (!conceptoSeleccionado.value) {
+    mostrarMensaje('Seleccione un concepto antes de registrar el pago', 'error')
+    return
+  }
+  if (!montoValido.value) {
     mostrarMensaje('Ingrese un monto válido', 'error')
     return
   }
 
-  if (monto.value > conceptoSeleccionado.value.pendiente) {
-    mostrarMensaje('El monto supera lo pendiente', 'error')
-    return
-  }
-
+  cargando.value = true
   try {
-    await axios.post('/api/admin/pagos/registrar', {
-      usuario_id: selectedUser.value,
+    await api.post('/pagos/registrar', {
+      usuario_id: selectedUser.value.id,
       concepto_id: conceptoSeleccionado.value.id,
-      monto: monto.value
+      monto: monto.value,
+      metodo_pago: metodo_pago.value,
+      referencia: referencia.value || null
     })
 
-    mostrarMensaje('Pago registrado con éxito', 'exito')
-    cancelarPago()
-    await cargarPagos() // Recargar la lista
+    mostrarMensaje('Pago registrado con éxito', 'success')
+
+    // Recargar pagos
+    await abrirModalPago(selectedUser.value)
+
+    // Seleccionar automáticamente primer concepto pendiente
+    const primerPendiente = pagos.value.find(p => Number(p.pendiente) > 0)
+    conceptoSeleccionado.value = primerPendiente || null
+    monto.value = 0
+    metodo_pago.value = 'efectivo'
+    referencia.value = ''
+
   } catch (error) {
-    mostrarMensaje('Error al registrar el pago', 'error')
+    console.error('Error al registrar pago', error)
+    mostrarMensaje(error.response?.data?.message || 'Error al registrar pago', 'error')
+  } finally {
+    cargando.value = false
   }
 }
 
+// Mensajes
 const mostrarMensaje = (texto, tipo) => {
   mensaje.value = texto
   tipoMensaje.value = tipo
   setTimeout(() => {
     mensaje.value = ''
-  }, 3000)
+  }, 5000)
 }
 
 onMounted(cargarUsuarios)
 </script>
 
+
+
 <style scoped>
-.pagos-container {
+
+
+.container {
+  padding: 1rem;
   max-width: 600px;
-  margin: 0 auto;
-  padding: 16px;
+  margin: auto;
+  margin-bottom:300px;
+
 }
 
-.page-title {
-  font-size: 1.5rem;
-  color: #0f172a;
-  margin-bottom: 20px;
-}
-
-.card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  border: 1px solid #e2e8f0;
-}
-
-.card h3 {
-  margin: 0 0 16px 0;
-  font-size: 1.1rem;
-  color: #0f172a;
-}
-
-.form-control {
-  width: 100%;
-  padding: 12px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 1rem;
-  background: white;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: #2563eb;
-}
-
-.totales {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.total-item {
-  background: #f8fafc;
-  padding: 12px;
-  border-radius: 12px;
+.title {
   text-align: center;
+  margin-bottom: 1rem;
 }
 
-.total-item span {
-  display: block;
-  font-size: 0.9rem;
-  color: #64748b;
-  margin-bottom: 4px;
-}
-
-.conceptos {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.concepto {
-  background: #f8fafc;
-  border: 1.5px solid #e2e8f0;
+/* Usuarios */
+.usuario-card {
+  background: white;
   border-radius: 12px;
-  padding: 16px;
-}
-
-.concepto-header {
+  padding: 1rem;
+  margin-bottom: 0.8rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-}
-
-.concepto-nombre {
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.badge {
-  padding: 4px 8px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.badge-success {
-  background: #16a34a;
-  color: white;
-}
-
-.badge-warning {
-  background: #f59e0b;
-  color: white;
-}
-
-.concepto-detalles {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
-  font-size: 0.9rem;
-}
-
-.concepto-detalles .pendiente {
-  color: #dc2626;
-  font-weight: 600;
-}
-
-.btn-pagar {
-  width: 100%;
-  padding: 10px;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
   cursor: pointer;
+  transition: 0.2s;
 }
 
-.form-pago {
-  background: #f0f9ff;
-  border-color: #2563eb;
+.usuario-card:hover {
+  transform: scale(1.02);
 }
 
-.form-group {
-  margin: 16px 0;
+.arrow {
+  font-size: 1.5rem;
+  color: #999;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-.botones {
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
   display: flex;
-  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  
+}
+
+.modal {
+  background: white;
+  width: 95%;
+  max-width: 550px;
+  border-radius: 16px;
+  padding: 1rem;
+  max-height: 85vh;
+  overflow: auto;
+  padding-bottom: 100px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Balance */
+.balance-card {
+  background: #f7f9fc;
+  padding: 0.8rem;
+  border-radius: 10px;
+  margin-bottom: 0.7rem;
+}
+
+.balance-top {
+  display: flex;
+  justify-content: space-between;
+}
+
+.badge-ok {
+  background: #d4edda;
+  color: #155724;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+}
+
+.badge-pending {
+  background: #fff3cd;
+  color: #856404;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+}
+
+.progress {
+  background: #e6e6e6;
+  border-radius: 10px;
+  height: 6px;
+  margin: 6px 0;
+}
+
+.progress-bar {
+  background: #007bff;
+  height: 6px;
+  border-radius: 10px;
+}
+
+/* Info */
+.balance-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+}
+
+/* Form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+select, input {
+  padding: 0.7rem;
+  border-radius: 8px;
+  border: 1px solid #ddd;
 }
 
 .btn {
-  flex: 1;
-  padding: 12px;
+  background: #007bff;
+  color: white;
+  padding: 0.9rem;
   border: none;
   border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
+  font-weight: bold;
 }
 
-.btn-primary {
-  background: #2563eb;
-  color: white;
+.btn:disabled {
+  background: #ccc;
 }
 
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: #e2e8f0;
-  color: #334155;
-}
-
-.mensaje-flotante {
-  position: fixed;
-  bottom: 90px;
-  left: 16px;
-  right: 16px;
-  padding: 14px;
-  border-radius: 12px;
-  background: white;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+/* Alerts */
+.alert {
+  margin-top: 1rem;
+  padding: 0.6rem;
+  border-radius: 8px;
   text-align: center;
-  font-weight: 500;
-  z-index: 1000;
-  animation: slideUp 0.3s ease;
 }
 
-.mensaje-flotante.exito {
-  background: #f0fdf4;
-  color: #166534;
-  border-left: 4px solid #16a34a;
-}
-
-.mensaje-flotante.error {
-  background: #fef2f2;
-  color: #991b1b;
-  border-left: 4px solid #dc2626;
-}
-
-.loading, .empty {
-  text-align: center;
-  color: #64748b;
-  padding: 40px 20px;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-/* Tablet */
-@media (min-width: 768px) {
-  .pagos-container {
-    padding: 24px;
-  }
-
-  .mensaje-flotante {
-    left: auto;
-    right: 24px;
-    max-width: 400px;
-  }
-}
+.alert.success { background: #d4edda; }
+.alert.error { background: #f8d7da; }
+.alert.info { background: #d1ecf1; }
 </style>
+
+

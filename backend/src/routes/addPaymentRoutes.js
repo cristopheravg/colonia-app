@@ -4,9 +4,6 @@ import { authMiddleware, adminMiddleware } from '../middleware/auth.js'
 
 const router = express.Router()
 
-
-
-
 // GET /api/admin/usuarios
 router.get('/usuarios', authMiddleware, adminMiddleware, async (req, res) => {
   try {
@@ -22,9 +19,6 @@ router.get('/usuarios', authMiddleware, adminMiddleware, async (req, res) => {
   }
 })
 
-
-
-
 /**
  * GET /api/admin/pagos/usuario/:usuarioId
  * Listar todos los pagos de un usuario con parcialidades
@@ -33,6 +27,27 @@ router.get('/usuario/:usuarioId', authMiddleware, adminMiddleware, async (req, r
   try {
     const { usuarioId } = req.params
 
+    // 🔹 Validar que sea número
+    const usuarioIdNum = Number(usuarioId)
+    if (isNaN(usuarioIdNum) || usuarioIdNum <= 0) {
+      return res.status(400).json({ message: 'ID de usuario inválido' })
+    }
+
+    // 🔹 Validar que usuario exista
+    const [[usuario]] = await pool.query(
+      `SELECT id FROM usuarios WHERE id = ?`,
+      [usuarioIdNum]
+    )
+
+    if (!usuario) {
+      return res.status(404).json({ message: 'Usuario no encontrado' })
+    }
+
+    /**
+     * 🔥 IMPORTANTE:
+     * Solo sumar pagos en estado "pagado"
+     * para que coincida con la vista_estado_cuenta
+     */
     const [conceptos] = await pool.query(`
       SELECT 
         c.id,
@@ -45,86 +60,215 @@ router.get('/usuario/:usuarioId', authMiddleware, adminMiddleware, async (req, r
         c.total - IFNULL(SUM(p.monto),0) AS pendiente
       FROM conceptos_pago c
       LEFT JOIN pagos p
-        ON c.id = p.concepto_id AND p.usuario_id = ?
+        ON c.id = p.concepto_id
+        AND p.usuario_id = ?
+        AND p.estado = 'pagado'
       WHERE c.activo = TRUE
       GROUP BY c.id
       ORDER BY c.nombre ASC
-    `, [usuarioId])
+    `, [usuarioIdNum])
 
-    const pagosConParcialidades = await Promise.all(conceptos.map(async (c) => {
-      const [parcialidades] = await pool.query(`
-        SELECT id, parcialidad AS numero, monto, estado, metodo_pago, referencia, fecha_pago
-        FROM pagos
-        WHERE usuario_id = ? AND concepto_id = ?
-        ORDER BY parcialidad ASC
-      `, [usuarioId, c.id])
+    /**
+     * 🔹 Obtener parcialidades de cada concepto
+     */
+    const pagosConParcialidades = await Promise.all(
+      conceptos.map(async (c) => {
+        const [parcialidades] = await pool.query(`
+          SELECT 
+            id,
+            parcialidad AS numero,
+            monto,
+            estado,
+            metodo_pago,
+            referencia,
+            fecha_pago
+          FROM pagos
+          WHERE usuario_id = ?
+            AND concepto_id = ?
+            AND estado <> 'cancelado'
+          ORDER BY parcialidad ASC
+        `, [usuarioIdNum, c.id])
 
-      return {
-        ...c,
-        parcialidades
-      }
-    }))
+        return {
+          ...c,
+          parcialidades
+        }
+      })
+    )
 
     res.json(pagosConParcialidades)
+
   } catch (error) {
     console.error(error)
-    res.status(500).json({ message: 'Error al obtener pagos' })
+    res.status(500).json({ message: 'Error al obtener pagos', error: error.message })
   }
 })
+
 
 /**
  * POST /api/admin/pagos/registrar
  * Registrar un pago (total o parcialidad)
  */
 router.post('/registrar', authMiddleware, adminMiddleware, async (req, res) => {
+  const conn = await pool.getConnection()
+
   try {
     const { usuario_id, concepto_id, monto, metodo_pago, referencia } = req.body
-    if (!usuario_id || !concepto_id || !monto) {
+
+    // 1️⃣ Validar datos
+    if (!usuario_id || !concepto_id || monto === undefined || monto === null) {
       return res.status(400).json({ message: 'Datos incompletos' })
     }
 
-    const [[concepto]] = await pool.query(`
-      SELECT tipo, total, mensualidades
-      FROM conceptos_pago
-      WHERE id = ?
-    `, [concepto_id])
-
-    if (!concepto) return res.status(404).json({ message: 'Concepto no encontrado' })
-
-    const [[ultimoPago]] = await pool.query(`
-      SELECT MAX(parcialidad) AS ultima
-      FROM pagos
-      WHERE usuario_id = ? AND concepto_id = ?
-    `, [usuario_id, concepto_id])
-
-    let siguienteParcialidad = 1
-    if (concepto.tipo === 'parcial' && ultimoPago?.ultima) {
-      siguienteParcialidad = ultimoPago.ultima + 1
+    const montoNum = parseFloat(monto)
+    if (isNaN(montoNum) || montoNum <= 0) {
+      return res.status(400).json({ message: 'El monto debe ser mayor a cero' })
     }
 
+    // 2️⃣ Método de pago
+    const metodosPermitidos = ['efectivo', 'transferencia', 'tarjeta']
+    const metodo = metodo_pago ? metodo_pago.toLowerCase() : 'efectivo'
+    if (!metodosPermitidos.includes(metodo)) {
+      return res.status(400).json({ message: `Método inválido` })
+    }
+
+    await conn.beginTransaction()
+
+    // 3️⃣ Usuario
+    const [[usuario]] = await conn.query(
+      `SELECT id FROM usuarios WHERE id = ? FOR UPDATE`,
+      [usuario_id]
+    )
+    if (!usuario) {
+      await conn.rollback()
+      return res.status(404).json({ message: 'Usuario no encontrado' })
+    }
+
+    // 4️⃣ Concepto
+    const [[concepto]] = await conn.query(
+      `SELECT tipo, total, mensualidades FROM conceptos_pago WHERE id = ? FOR UPDATE`,
+      [concepto_id]
+    )
+    if (!concepto) {
+      await conn.rollback()
+      return res.status(404).json({ message: 'Concepto no encontrado' })
+    }
+
+    // 5️⃣ Total pagado
+    const [[totalPagado]] = await conn.query(
+      `SELECT IFNULL(SUM(monto),0) AS pagado 
+       FROM pagos 
+       WHERE usuario_id = ? AND concepto_id = ? FOR UPDATE`,
+      [usuario_id, concepto_id]
+    )
+
+    const restante = concepto.total - totalPagado.pagado
+    if (restante <= 0) {
+      await conn.rollback()
+      return res.status(400).json({ message: 'El concepto ya está pagado' })
+    }
+
+    // 🔥 VALIDACIONES SEGÚN TIPO
+    if (concepto.tipo === 'unico') {
+      if (montoNum !== restante) {
+        await conn.rollback()
+        return res.status(400).json({
+          message: `Pago único: debe ingresar exactamente ${restante}`
+        })
+      }
+    }
+
+    if (concepto.tipo === 'parcial') {
+      // Conteo real de pagos
+      const [[conteo]] = await conn.query(
+        `SELECT COUNT(*) AS total 
+         FROM pagos 
+         WHERE usuario_id = ? AND concepto_id = ? FOR UPDATE`,
+        [usuario_id, concepto_id]
+      )
+
+      const pagosRealizados = conteo.total
+      const faltan = concepto.mensualidades - pagosRealizados
+
+      if (faltan <= 0) {
+        await conn.rollback()
+        return res.status(400).json({
+          message: 'Todas las mensualidades ya fueron registradas'
+        })
+      }
+
+      // Última mensualidad exacta
+      if (faltan === 1 && montoNum !== restante) {
+        await conn.rollback()
+        return res.status(400).json({
+          message: `Última mensualidad: debe pagar exactamente ${restante}`
+        })
+      }
+
+      if (faltan > 1 && montoNum > restante) {
+        await conn.rollback()
+        return res.status(400).json({
+          message: `Monto excede el restante (${restante})`
+        })
+      }
+    }
+
+    // 6️⃣ Calcular parcialidad segura
+    let parcialidad = 1
+
+    if (concepto.tipo === 'parcial') {
+      const [[conteo]] = await conn.query(
+        `SELECT COUNT(*) AS total 
+         FROM pagos 
+         WHERE usuario_id = ? AND concepto_id = ? FOR UPDATE`,
+        [usuario_id, concepto_id]
+      )
+
+      parcialidad = conteo.total + 1
+    }
+
+    // 7️⃣ Estado correcto
     let estado = 'pagado'
-    if (concepto.tipo === 'parcial' && siguienteParcialidad < concepto.mensualidades) {
-      estado = 'pendiente'
-    }
+    const restanteDespues = restante - montoNum
+    //if (restanteDespues > 0) estado = 'pendiente'
 
-    const [result] = await pool.query(`
-      INSERT INTO pagos 
+    // 8️⃣ Insertar pago
+    const [result] = await conn.query(`
+      INSERT INTO pagos
       (usuario_id, concepto_id, monto, parcialidad, estado, metodo_pago, referencia)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [usuario_id, concepto_id, monto, siguienteParcialidad, estado, metodo_pago || 'efectivo', referencia || null])
+    `, [
+      usuario_id,
+      concepto_id,
+      montoNum,
+      parcialidad,
+      estado,
+      metodo,
+      referencia || null
+    ])
+
+    await conn.commit()
 
     res.status(201).json({
       message: 'Pago registrado',
       id: result.insertId,
-      parcialidad: siguienteParcialidad,
-      estado
+      parcialidad,
+      estado,
+      restante: restanteDespues
     })
 
   } catch (error) {
+    await conn.rollback()
     console.error(error)
-    res.status(500).json({ message: 'Error al registrar pago' })
+    res.status(500).json({ message: 'Error al registrar pago', error: error.message })
+  } finally {
+    conn.release()
   }
 })
+
+
+
+
 
 /**
  * PUT /api/admin/pagos/:id
@@ -135,20 +279,66 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
     const { id } = req.params
     const { monto, metodo_pago, referencia } = req.body
 
+    // Validar monto si se envía
+    let montoNum
+    if (monto !== undefined && monto !== null) {
+      montoNum = parseFloat(monto)
+      if (isNaN(montoNum) || montoNum <= 0) {
+        return res.status(400).json({ message: 'El monto debe ser un número mayor a cero' })
+      }
+    }
+
+    // 🔹 Validar método de pago si se envía
+    if (metodo_pago) {
+      const metodosPermitidos = ['efectivo', 'transferencia', 'tarjeta']
+      const metodo = metodo_pago.toLowerCase()
+      if (!metodosPermitidos.includes(metodo)) {
+        return res.status(400).json({ message: `Método de pago inválido. Debe ser: ${metodosPermitidos.join(', ')}` })
+      }
+    }
+
+    // Verificar que el pago exista
+    const [[pago]] = await pool.query(`
+      SELECT usuario_id, concepto_id
+      FROM pagos
+      WHERE id = ?
+    `, [id])
+    if (!pago) {
+      return res.status(404).json({ message: 'Pago no encontrado' })
+    }
+
+    // Validar monto restante si se actualiza el monto
+    if (montoNum !== undefined) {
+      const [[totalPagado]] = await pool.query(`
+        SELECT IFNULL(SUM(monto),0) AS pagado
+        FROM pagos
+        WHERE usuario_id = ? AND concepto_id = ? AND id <> ?
+      `, [pago.usuario_id, pago.concepto_id, id])
+
+      const [[concepto]] = await pool.query(`
+        SELECT total FROM conceptos_pago WHERE id = ?
+      `, [pago.concepto_id])
+
+      const restante = concepto.total - totalPagado.pagado
+      if (montoNum > restante) {
+        return res.status(400).json({
+          message: `El monto excede el restante disponible (${restante})`
+        })
+      }
+    }
+
+    // Actualizar pago
     const [result] = await pool.query(`
       UPDATE pagos
       SET monto = ?, metodo_pago = ?, referencia = ?
       WHERE id = ?
-    `, [monto, metodo_pago, referencia, id])
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Pago no encontrado' })
-    }
+    `, [montoNum, metodo_pago, referencia, id])
 
     res.json({ message: 'Pago actualizado' })
+
   } catch (error) {
     console.error(error)
-    res.status(500).json({ message: 'Error al actualizar pago' })
+    res.status(500).json({ message: 'Error al actualizar pago', error: error.message })
   }
 })
 
