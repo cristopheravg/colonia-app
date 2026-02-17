@@ -1,19 +1,19 @@
 import api from './api.js'
 
-export const paymentService = {
+export const balanceService = {
   getBalance() {
-    return api.get('/payments/balance')
+    return api.get('/balance')
   },
   
   getHistory() {
-    return api.get('/payments/history')
+    return api.get('/balance/historial')
   },
   
   getConcepts() {
-    return api.get('/payments/concepts')
-  },
+    return api.get('/balance/conceptos')
+  }/*,
   
   createPayment(paymentData) {
     return api.post('/payments', paymentData)
-  }
+  }*/
 }

@@ -1,6 +1,6 @@
 import { pool } from '../config/database.js';
 
-export const Payment = {
+export const Balance = {
 
   // Obtener estado de cuenta de un usuario
   async getBalance(userId) {
@@ -82,7 +82,7 @@ export const Payment = {
     }
   },
 
-  // Registrar un pago
+  /*// Registrar un pago
   async create(paymentData) {
     try {
       const { usuario_id, concepto_id, monto, parcialidad = 1, metodo_pago = 'efectivo', referencia } = paymentData;
@@ -99,7 +99,7 @@ export const Payment = {
       console.error('Error en create:', error);
       throw error;
     }
-  },
+  },*/
 
   // Obtener conceptos de pago activos
   async getConcepts() {

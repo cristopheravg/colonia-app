@@ -93,7 +93,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import { paymentService } from '@/services/paymentService'
+import { balanceService } from '@/services/balanceService'
 
 const loading = ref(true)
 
@@ -102,7 +102,7 @@ const balance = ref({
   resumen: {}
 })
 
-const paymentHistory = ref([])
+const balanceHistory = ref([])
 
 
 // resumen seguro
@@ -147,7 +147,7 @@ const detalleOrdenado = computed(() => {
 
 // últimos pagos
 const recentPayments = computed(() =>
-  paymentHistory.value.slice(0, 3)
+  balanceHistory.value.slice(0, 3)
 )
 
 
@@ -248,7 +248,7 @@ const loadBalanceData = async () => {
 
   try {
 
-    const response = await paymentService.getBalance()
+    const response = await balanceService.getBalance()
 
     console.log('Balance API:', response)
 

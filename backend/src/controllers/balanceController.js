@@ -1,12 +1,12 @@
-import { Payment } from '../models/Payment.js';
+import { Balance } from '../models/Balance.js';
 
-export const paymentController = {
+export const balanceController = {
   // Obtener estado de cuenta del usuario
   async getBalance(req, res) {
     try {
       const userId = req.user.id;
       
-      const balance = await Payment.getBalance(userId);
+      const balance = await Balance.getBalance(userId);
       
       res.json({
         success: true,
@@ -26,7 +26,7 @@ export const paymentController = {
     try {
       const userId = req.user.id;
       
-      const history = await Payment.getHistory(userId);
+      const history = await Balance.getHistory(userId);
       
       res.json({
         success: true,
@@ -44,7 +44,7 @@ export const paymentController = {
   // Obtener conceptos de pago
   async getConcepts(req, res) {
     try {
-      const concepts = await Payment.getConcepts();
+      const concepts = await Balance.getConcepts();
       
       res.json({
         success: true,
@@ -59,7 +59,7 @@ export const paymentController = {
     }
   },
 
-  // Registrar un pago
+/*  // Registrar un pago
   async createPayment(req, res) {
     try {
       const userId = req.user.id;
@@ -96,5 +96,5 @@ export const paymentController = {
         message: 'Error registrando el pago'
       });
     }
-  }
+  }*/
 };

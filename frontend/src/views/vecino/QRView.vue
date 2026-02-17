@@ -118,7 +118,7 @@ const generateOTP = async () => {
       verificationCode.value = '---'
       return
     }
-    const res = await axios.post('http://54.227.139.118:3000/generar', { userId })
+    const res = await axios.post('http://54.227.139.118:3000/api/otp/generar', { userId })
     verificationCode.value = res.data.otp
 
     // Concatenar OTP + ID y codificar en Base64

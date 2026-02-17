@@ -5,13 +5,14 @@ import { testConnection } from './config/database.js';
 
 // Importar rutas
 import authRoutes from './routes/authRoutes.js';
-import paymentsRoutes from './routes/paymentsRoutes.js';
+import balanceRoutes from './routes/balanceRoutes.js';
 import eventRoutes from './routes/eventsRoutes.js'; 
 import newsRoutes from './routes/newsRoutes.js'; 
 import otpRoutes from './routes/otpRoutes.js'
 import userRoutes from './routes/usersRoutes.js';
 import conceptsRoutes from './routes/conceptsRoutes.js'
-
+import addPaymentsRoutes from './routes/addPaymentRoutes.js'
+       
 
 
 // Configurar variables de entorno
@@ -40,14 +41,17 @@ app.get('/', (req, res) => {
   });
 });
 
+
+
 // Rutas de la API
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', userRoutes);
-app.use('/api/payments', paymentsRoutes);
+app.use('/api/balance', balanceRoutes);
 app.use('/api/eventos', eventRoutes); 
 app.use('/api/noticias', newsRoutes); 
-app.use('/', otpRoutes)
+app.use('/api/otp', otpRoutes)
 app.use('/api/conceptos', conceptsRoutes)
+app.use('/api/pagos', addPaymentsRoutes)
 
 
 
