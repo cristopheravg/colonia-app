@@ -17,7 +17,7 @@
         `SELECT id, nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes
         FROM eventos
         WHERE activo = TRUE
-        ORDER BY fecha_inicio ASC`
+        ORDER BY fecha_inicio DESC`
         );
 
         res.json({ success: true, data: rows });
@@ -31,30 +31,44 @@
      * POST /api/events
      * Solo admin
      */
-    router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
-    try {
-        const { nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes } = req.body;
+router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    let { nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes } = req.body;
 
-        //const connection = await getConnection();
-        console.log('BODY RECIBIDO:', req.body)
+    console.log('BODY RECIBIDO:', req.body);
 
-        const [result] = await pool.query(
-        `INSERT INTO eventos (nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes)
-        VALUES (?, ?, ?, ?, ?, ?)`,
-        [nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes]
-        );
+    // 🔥 Limpiar datos vacíos
+    fecha_fin = fecha_fin === '' ? null : fecha_fin;
+    lugar = lugar === '' ? null : lugar;
+    max_asistentes = max_asistentes || 0;
 
-        res.status(201).json({
-        success: true,
-        message: 'Evento creado',
-        id: result.insertId
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Error al crear evento' });
+    // Validación básica
+    if (!nombre || !fecha_inicio) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nombre y fecha de inicio son obligatorios'
+      });
     }
+
+    const [result] = await pool.query(
+      `INSERT INTO eventos 
+      (nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes)
+      VALUES (?, ?, ?, ?, ?, ?)`,
+      [nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Evento creado',
+      id: result.insertId
     });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error al crear evento' });
+  }
+});
+
 
 
 
@@ -62,29 +76,35 @@
      * PUT /api/eventos/:id
      * Solo admin
      */
-    router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
-    try {
-        const { id } = req.params
-        const { nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes } = req.body
+router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes } = req.body;
 
-        const [result] = await pool.query(
-        `UPDATE eventos 
-        SET nombre = ?, descripcion = ?, fecha_inicio = ?, fecha_fin = ?, lugar = ?, max_asistentes = ?
-        WHERE id = ?`,
-        [nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes, id]
-        )
+    // 🔥 Limpiar datos
+    fecha_fin = fecha_fin === '' ? null : fecha_fin;
+    lugar = lugar === '' ? null : lugar;
+    max_asistentes = max_asistentes || 0;
 
-        if (result.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: 'Evento no encontrado' })
-        }
+    const [result] = await pool.query(
+      `UPDATE eventos 
+       SET nombre = ?, descripcion = ?, fecha_inicio = ?, fecha_fin = ?, lugar = ?, max_asistentes = ?
+       WHERE id = ?`,
+      [nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes, id]
+    );
 
-        res.json({ success: true, message: 'Evento actualizado' })
-
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ success: false, message: 'Error al actualizar evento' })
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Evento no encontrado' });
     }
-    })
+
+    res.json({ success: true, message: 'Evento actualizado' });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error al actualizar evento' });
+  }
+});
+
 
 
 
