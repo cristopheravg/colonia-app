@@ -1,171 +1,262 @@
--- -------------------------------------------------
--- Base de datos: colonia_app
--- -------------------------------------------------
-DROP DATABASE IF EXISTS colonia_app;
-CREATE DATABASE colonia_app CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE colonia_app;
+/*M!999999\- enable the sandbox mode */ 
+-- MariaDB dump 10.19  Distrib 10.11.14-MariaDB, for debian-linux-gnu (x86_64)
+--
+-- Host: localhost    Database: colonia_app
+-- ------------------------------------------------------
+-- Server version	10.11.14-MariaDB-0+deb12u2
 
--- -------------------------------------------------
--- Tabla: usuarios
--- -------------------------------------------------
-CREATE TABLE usuarios (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    correo VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    direccion VARCHAR(255) NOT NULL,
-    telefono VARCHAR(20),
-    activo BOOLEAN DEFAULT TRUE,
-    rol ENUM('vecino','admin') DEFAULT 'vecino',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_correo (correo),
-    INDEX idx_rol (rol)
-);
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
--- -------------------------------------------------
--- Tabla: noticias
--- -------------------------------------------------
-CREATE TABLE noticias (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    titulo VARCHAR(255) NOT NULL,
-    contenido TEXT NOT NULL,
-    imagen_url VARCHAR(500),
-    destacada BOOLEAN DEFAULT FALSE,
-    fecha_publicacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    usuario_id INT,
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
-    INDEX idx_fecha (fecha_publicacion),
-    INDEX idx_destacada (destacada)
-);
+--
+-- Table structure for table `asistencias`
+--
 
--- -------------------------------------------------
--- Tabla: eventos
--- -------------------------------------------------
-CREATE TABLE eventos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(255) NOT NULL,
-    descripcion TEXT,
-    fecha_inicio DATETIME NOT NULL,
-    fecha_fin DATETIME NOT NULL,
-    lugar VARCHAR(255),
-    max_asistentes INT,
-    activo BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_fechas (fecha_inicio, fecha_fin),
-    INDEX idx_activo (activo)
-);
+DROP TABLE IF EXISTS `asistencias`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `asistencias` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `usuario_id` int(11) NOT NULL,
+  `evento_id` int(11) NOT NULL,
+  `presente` tinyint(1) DEFAULT 0,
+  `fecha_registro` datetime DEFAULT current_timestamp(),
+  `fecha_asistencia` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_usuario_evento` (`usuario_id`,`evento_id`),
+  KEY `idx_evento` (`evento_id`),
+  KEY `idx_presente` (`presente`),
+  CONSTRAINT `asistencias_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `asistencias_ibfk_2` FOREIGN KEY (`evento_id`) REFERENCES `eventos` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- -------------------------------------------------
--- Tabla: conceptos_pago
--- -------------------------------------------------
-CREATE TABLE conceptos_pago (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(255) NOT NULL,
-    descripcion TEXT,
-    tipo ENUM('unico','parcial') NOT NULL DEFAULT 'unico',
-    total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-    mensualidades INT DEFAULT 1,
-    activo BOOLEAN DEFAULT TRUE,
-    fecha_limite DATE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_tipo (tipo),
-    INDEX idx_activo (activo)
-);
+--
+-- Table structure for table `auditoria`
+--
 
--- -------------------------------------------------
--- Tabla: pagos
--- -------------------------------------------------
-CREATE TABLE pagos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    usuario_id INT NOT NULL,
-    concepto_id INT NOT NULL,
-    monto DECIMAL(10,2) NOT NULL,
-    fecha_pago DATETIME DEFAULT CURRENT_TIMESTAMP,
-    parcialidad INT DEFAULT 1,
-    referencia VARCHAR(100),
-    estado ENUM('pendiente','pagado','cancelado') DEFAULT 'pendiente',
-    metodo_pago ENUM('efectivo','transferencia','tarjeta') DEFAULT 'efectivo',
-    comprobante_url VARCHAR(500),
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-    FOREIGN KEY (concepto_id) REFERENCES conceptos_pago(id) ON DELETE CASCADE,
-    INDEX idx_usuario (usuario_id),
-    INDEX idx_fecha (fecha_pago),
-    INDEX idx_estado (estado),
-    UNIQUE KEY uk_concepto_parcialidad (usuario_id, concepto_id, parcialidad)
-);
+DROP TABLE IF EXISTS `auditoria`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `auditoria` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `tabla_afectada` varchar(50) DEFAULT NULL,
+  `accion` enum('INSERT','UPDATE','DELETE') DEFAULT NULL,
+  `usuario_id` int(11) DEFAULT NULL,
+  `datos_anteriores` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`datos_anteriores`)),
+  `datos_nuevos` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`datos_nuevos`)),
+  `ip_address` varchar(45) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_tabla` (`tabla_afectada`),
+  KEY `idx_fecha` (`created_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- -------------------------------------------------
--- Tabla: asistencias
--- -------------------------------------------------
-CREATE TABLE asistencias (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    usuario_id INT NOT NULL,
-    evento_id INT NOT NULL,
-    presente BOOLEAN DEFAULT FALSE,
-    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_asistencia DATETIME,
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-    FOREIGN KEY (evento_id) REFERENCES eventos(id) ON DELETE CASCADE,
-    UNIQUE KEY uk_usuario_evento (usuario_id, evento_id),
-    INDEX idx_evento (evento_id),
-    INDEX idx_presente (presente)
-);
+--
+-- Table structure for table `conceptos_pago`
+--
 
--- -------------------------------------------------
--- Tabla: qr_usuarios
--- -------------------------------------------------
-CREATE TABLE qr_usuarios (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    usuario_id INT NOT NULL UNIQUE,
-    codigo_qr TEXT NOT NULL,
-    token_verificacion VARCHAR(100) NOT NULL UNIQUE,
-    fecha_generado DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_expiracion DATETIME,
-    activo BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-    INDEX idx_token (token_verificacion),
-    INDEX idx_expiracion (fecha_expiracion)
-);
+DROP TABLE IF EXISTS `conceptos_pago`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `conceptos_pago` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(255) NOT NULL,
+  `descripcion` text DEFAULT NULL,
+  `tipo` enum('unico','parcial') NOT NULL DEFAULT 'unico',
+  `total` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `mensualidades` int(11) DEFAULT 1,
+  `activo` tinyint(1) DEFAULT 1,
+  `fecha_limite` date DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_tipo` (`tipo`),
+  KEY `idx_activo` (`activo`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- -------------------------------------------------
--- Tabla: notificaciones
--- -------------------------------------------------
-CREATE TABLE notificaciones (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    usuario_id INT,
-    titulo VARCHAR(255) NOT NULL,
-    mensaje TEXT NOT NULL,
-    tipo ENUM('sistema','pago','evento','noticia') DEFAULT 'sistema',
-    leida BOOLEAN DEFAULT FALSE,
-    fecha_envio DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_leida DATETIME,
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-    INDEX idx_usuario_leida (usuario_id, leida),
-    INDEX idx_fecha (fecha_envio)
-);
+--
+-- Table structure for table `eventos`
+--
 
--- -------------------------------------------------
--- Tabla: auditoria (logs importantes)
--- -------------------------------------------------
-CREATE TABLE auditoria (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    tabla_afectada VARCHAR(50),
-    accion ENUM('INSERT','UPDATE','DELETE'),
-    usuario_id INT,
-    datos_anteriores JSON,
-    datos_nuevos JSON,
-    ip_address VARCHAR(45),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_tabla (tabla_afectada),
-    INDEX idx_fecha (created_at)
-);
+DROP TABLE IF EXISTS `eventos`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `eventos` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(255) NOT NULL,
+  `descripcion` text DEFAULT NULL,
+  `fecha_inicio` datetime NOT NULL,
+  `fecha_fin` datetime DEFAULT NULL,
+  `lugar` varchar(255) DEFAULT NULL,
+  `max_asistentes` int(11) DEFAULT NULL,
+  `activo` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_fechas` (`fecha_inicio`,`fecha_fin`),
+  KEY `idx_activo` (`activo`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- -------------------------------------------------
--- Triggers para auditoría (ejemplo para usuarios)
--- -------------------------------------------------
-DELIMITER //
-CREATE TRIGGER tr_usuarios_after_update
+--
+-- Table structure for table `noticias`
+--
+
+DROP TABLE IF EXISTS `noticias`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `noticias` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `titulo` varchar(255) NOT NULL,
+  `contenido` text NOT NULL,
+  `imagen_url` varchar(500) DEFAULT NULL,
+  `destacada` tinyint(1) DEFAULT 0,
+  `fecha_publicacion` datetime DEFAULT current_timestamp(),
+  `usuario_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `usuario_id` (`usuario_id`),
+  KEY `idx_fecha` (`fecha_publicacion`),
+  KEY `idx_destacada` (`destacada`),
+  CONSTRAINT `noticias_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `notificaciones`
+--
+
+DROP TABLE IF EXISTS `notificaciones`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `notificaciones` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `usuario_id` int(11) DEFAULT NULL,
+  `titulo` varchar(255) NOT NULL,
+  `mensaje` text NOT NULL,
+  `tipo` enum('sistema','pago','evento','noticia') DEFAULT 'sistema',
+  `leida` tinyint(1) DEFAULT 0,
+  `fecha_envio` datetime DEFAULT current_timestamp(),
+  `fecha_leida` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_usuario_leida` (`usuario_id`,`leida`),
+  KEY `idx_fecha` (`fecha_envio`),
+  CONSTRAINT `notificaciones_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `otps`
+--
+
+DROP TABLE IF EXISTS `otps`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `otps` (
+  `userId` int(11) NOT NULL,
+  `otp` varchar(6) DEFAULT NULL,
+  `expiresAt` datetime DEFAULT NULL,
+  PRIMARY KEY (`userId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `pagos`
+--
+
+DROP TABLE IF EXISTS `pagos`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `pagos` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `usuario_id` int(11) NOT NULL,
+  `concepto_id` int(11) NOT NULL,
+  `monto` decimal(10,2) NOT NULL,
+  `fecha_pago` datetime DEFAULT current_timestamp(),
+  `parcialidad` int(11) DEFAULT 1,
+  `referencia` varchar(100) DEFAULT NULL,
+  `estado` enum('pendiente','pagado','cancelado') DEFAULT 'pendiente',
+  `metodo_pago` enum('efectivo','transferencia','tarjeta') DEFAULT 'efectivo',
+  `comprobante_url` varchar(500) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_concepto_parcialidad` (`usuario_id`,`concepto_id`,`parcialidad`),
+  KEY `concepto_id` (`concepto_id`),
+  KEY `idx_usuario` (`usuario_id`),
+  KEY `idx_fecha` (`fecha_pago`),
+  KEY `idx_estado` (`estado`),
+  CONSTRAINT `pagos_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `pagos_ibfk_2` FOREIGN KEY (`concepto_id`) REFERENCES `conceptos_pago` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `qr_usuarios`
+--
+
+DROP TABLE IF EXISTS `qr_usuarios`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `qr_usuarios` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `usuario_id` int(11) NOT NULL,
+  `codigo_qr` text NOT NULL,
+  `token_verificacion` varchar(100) NOT NULL,
+  `fecha_generado` datetime DEFAULT current_timestamp(),
+  `fecha_expiracion` datetime DEFAULT NULL,
+  `activo` tinyint(1) DEFAULT 1,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `usuario_id` (`usuario_id`),
+  UNIQUE KEY `token_verificacion` (`token_verificacion`),
+  KEY `idx_token` (`token_verificacion`),
+  KEY `idx_expiracion` (`fecha_expiracion`),
+  CONSTRAINT `qr_usuarios_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `usuarios`
+--
+
+DROP TABLE IF EXISTS `usuarios`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `usuarios` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(100) NOT NULL,
+  `apellidos` varchar(100) NOT NULL,
+  `correo` varchar(100) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `direccion` varchar(255) NOT NULL,
+  `telefono` varchar(20) DEFAULT NULL,
+  `numero_vecino` varchar(20) NOT NULL DEFAULT '',
+  `activo` tinyint(1) DEFAULT 1,
+  `rol` enum('vecino','admin') DEFAULT 'vecino',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `correo` (`correo`),
+  KEY `idx_correo` (`correo`),
+  KEY `idx_rol` (`rol`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb3 */ ;
+/*!50003 SET character_set_results = utf8mb3 */ ;
+/*!50003 SET collation_connection  = utf8mb3_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER tr_usuarios_after_update
 AFTER UPDATE ON usuarios
 FOR EACH ROW
 BEGIN
@@ -173,92 +264,86 @@ BEGIN
     VALUES ('usuarios', 'UPDATE', NEW.id,
             JSON_OBJECT('nombre', OLD.nombre, 'correo', OLD.correo, 'rol', OLD.rol),
             JSON_OBJECT('nombre', NEW.nombre, 'correo', NEW.correo, 'rol', NEW.rol));
-END//
+END */;;
 DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
--- -------------------------------------------------
--- Vista: estado_cuenta_por_usuario
--- -------------------------------------------------
-CREATE VIEW vista_estado_cuenta AS
-SELECT 
-    u.id as usuario_id,
-    u.nombre,
-    u.correo,
-    cp.nombre as concepto,
-    cp.total as total_concepto,
-    COALESCE(SUM(p.monto), 0) as total_pagado,
-    (cp.total - COALESCE(SUM(p.monto), 0)) as saldo_pendiente,
-    COUNT(p.id) as pagos_realizados,
-    CASE 
-        WHEN cp.tipo = 'parcial' THEN 
-            CONCAT(COUNT(p.id), '/', cp.mensualidades)
-        ELSE 
-            CASE WHEN COALESCE(SUM(p.monto), 0) >= cp.total THEN 'Completado' ELSE 'Pendiente' END
-    END as estado
-FROM usuarios u
-CROSS JOIN conceptos_pago cp
-LEFT JOIN pagos p ON p.usuario_id = u.id AND p.concepto_id = cp.id AND p.estado = 'pagado'
-WHERE cp.activo = TRUE
-GROUP BY u.id, cp.id
-ORDER BY u.nombre, cp.nombre;
+--
+-- Temporary table structure for view `vista_estado_cuenta`
+--
 
--- -------------------------------------------------
--- Datos iniciales de ejemplo
--- -------------------------------------------------
+DROP TABLE IF EXISTS `vista_estado_cuenta`;
+/*!50001 DROP VIEW IF EXISTS `vista_estado_cuenta`*/;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8mb4;
+/*!50001 CREATE VIEW `vista_estado_cuenta` AS SELECT
+ 1 AS `usuario_id`,
+  1 AS `nombre`,
+  1 AS `correo`,
+  1 AS `concepto_id`,
+  1 AS `concepto`,
+  1 AS `tipo`,
+  1 AS `total_concepto`,
+  1 AS `total_pagado`,
+  1 AS `saldo_pendiente`,
+  1 AS `pagos_realizados`,
+  1 AS `estado` */;
+SET character_set_client = @saved_cs_client;
 
--- Usuarios (password: Admin123! y Vecino123!)
-INSERT INTO usuarios (nombre, correo, password, direccion, telefono, rol) VALUES
-('Administrador Principal', 'admin@colonia.com', '$2b$10$YourHashedPasswordHere1', 'Oficina de Administración', '555-1000', 'admin'),
-('María González', 'maria@vecino.com', '$2b$10$YourHashedPasswordHere2', 'Calle Primavera #123', '555-1001', 'vecino'),
-('Carlos López', 'carlos@vecino.com', '$2b$10$YourHashedPasswordHere3', 'Av. Central #456', '555-1002', 'vecino'),
-('Ana Martínez', 'ana@vecino.com', '$2b$10$YourHashedPasswordHere4', 'Calle Roble #789', '555-1003', 'vecino');
+--
+-- Dumping events for database 'colonia_app'
+--
 
--- Conceptos de pago
-INSERT INTO conceptos_pago (nombre, descripcion, tipo, total, mensualidades, fecha_limite) VALUES
-('Aportación Anual 2024', 'Mantenimiento de áreas comunes anual', 'unico', 1200.00, 1, '2024-12-31'),
-('Acometida Eléctrica', 'Instalación eléctrica comunitaria', 'parcial', 3600.00, 6, '2024-06-30'),
-('Fondo de Emergencia', 'Reserva para imprevistos', 'parcial', 2400.00, 12, '2024-12-31'),
-('Mejora Alumbrado', 'Renovación sistema de iluminación', 'unico', 800.00, 1, '2024-03-31');
-
--- Pagos de ejemplo
-INSERT INTO pagos (usuario_id, concepto_id, monto, parcialidad, estado, metodo_pago) VALUES
-(2, 1, 1200.00, 1, 'pagado', 'transferencia'),
-(2, 2, 600.00, 1, 'pagado', 'efectivo'),
-(2, 2, 600.00, 2, 'pagado', 'transferencia'),
-(3, 1, 1200.00, 1, 'pagado', 'tarjeta'),
-(3, 2, 600.00, 1, 'pendiente', NULL),
-(4, 1, 600.00, 1, 'pagado', 'efectivo');
-
--- Eventos
-INSERT INTO eventos (nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes) VALUES
-('Asamblea General Trimestral', 'Revisión de estados financieros y proyectos', '2024-01-15 18:00:00', '2024-01-15 20:00:00', 'Salón Comunitario', 50),
-('Jornada de Limpieza', 'Limpieza de áreas verdes y comunes', '2024-01-20 09:00:00', '2024-01-20 13:00:00', 'Parque Central', 30),
-('Fiesta Navideña', 'Celebración de fin de año para familias', '2024-12-15 17:00:00', '2024-12-15 23:00:00', 'Área de Juegos', 100);
-
--- Noticias
-INSERT INTO noticias (titulo, contenido, imagen_url, destacada, usuario_id) VALUES
-('Nuevo Sistema de Seguridad', 'Se ha instalado cámaras de seguridad en puntos estratégicos de la colonia...', 'https://ejemplo.com/seguridad.jpg', TRUE, 1),
-('Reparación de Tuberías', 'El próximo lunes se realizarán trabajos de mantenimiento en el sistema de agua...', NULL, FALSE, 1),
-('Horarios de Recolección', 'A partir de febrero cambian los horarios de recolección de basura...', 'https://ejemplo.com/basura.jpg', TRUE, 1);
-
--- Asistencias
-INSERT INTO asistencias (usuario_id, evento_id, presente, fecha_asistencia) VALUES
-(2, 1, TRUE, '2024-01-15 18:05:00'),
-(3, 1, FALSE, NULL),
-(4, 1, TRUE, '2024-01-15 18:10:00'),
-(2, 2, TRUE, '2024-01-20 09:00:00');
-
--- Notificaciones de ejemplo
-INSERT INTO notificaciones (usuario_id, titulo, mensaje, tipo) VALUES
-(2, 'Pago Confirmado', 'Tu pago de Aportación Anual ha sido confirmado', 'pago'),
-(3, 'Evento Próximo', 'No olvides la Asamblea General del próximo lunes', 'evento'),
-(NULL, 'Nueva Noticia', 'Revisa la nueva información sobre seguridad', 'noticia');
-
--- -------------------------------------------------
--- Procedimiento: Generar QR para usuario
--- -------------------------------------------------
-DELIMITER //
-CREATE PROCEDURE sp_generar_qr_usuario(
+--
+-- Dumping routines for database 'colonia_app'
+--
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP FUNCTION IF EXISTS `fn_saldo_total_usuario` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb3 */ ;
+/*!50003 SET character_set_results = utf8mb3 */ ;
+/*!50003 SET collation_connection  = utf8mb3_general_ci */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` FUNCTION `fn_saldo_total_usuario`(p_usuario_id INT) RETURNS decimal(10,2)
+    READS SQL DATA
+    DETERMINISTIC
+BEGIN
+    DECLARE v_saldo DECIMAL(10,2);
+    
+    SELECT SUM(cp.total - COALESCE(p.total_pagado, 0)) INTO v_saldo
+    FROM conceptos_pago cp
+    LEFT JOIN (
+        SELECT concepto_id, SUM(monto) as total_pagado
+        FROM pagos
+        WHERE usuario_id = p_usuario_id AND estado = 'pagado'
+        GROUP BY concepto_id
+    ) p ON cp.id = p.concepto_id
+    WHERE cp.activo = TRUE;
+    
+    RETURN COALESCE(v_saldo, 0);
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `sp_generar_qr_usuario` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb3 */ ;
+/*!50003 SET character_set_results = utf8mb3 */ ;
+/*!50003 SET collation_connection  = utf8mb3_general_ci */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_generar_qr_usuario`(
     IN p_usuario_id INT,
     IN p_token VARCHAR(100)
 )
@@ -275,43 +360,38 @@ BEGIN
         token_verificacion = p_token,
         fecha_expiracion = DATE_ADD(NOW(), INTERVAL 1 YEAR),
         activo = TRUE;
-END//
+END ;;
 DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
--- -------------------------------------------------
--- Función: Obtener saldo total usuario
--- -------------------------------------------------
-DELIMITER //
-CREATE FUNCTION fn_saldo_total_usuario(p_usuario_id INT) 
-RETURNS DECIMAL(10,2)
-DETERMINISTIC
-READS SQL DATA
-BEGIN
-    DECLARE v_saldo DECIMAL(10,2);
-    
-    SELECT SUM(cp.total - COALESCE(p.total_pagado, 0)) INTO v_saldo
-    FROM conceptos_pago cp
-    LEFT JOIN (
-        SELECT concepto_id, SUM(monto) as total_pagado
-        FROM pagos
-        WHERE usuario_id = p_usuario_id AND estado = 'pagado'
-        GROUP BY concepto_id
-    ) p ON cp.id = p.concepto_id
-    WHERE cp.activo = TRUE;
-    
-    RETURN COALESCE(v_saldo, 0);
-END//
-DELIMITER ;
+--
+-- Final view structure for view `vista_estado_cuenta`
+--
 
--- -------------------------------------------------
--- Usuarios con permisos (ejemplo para producción)
--- -------------------------------------------------
-CREATE USER 'colonia_app_user'@'localhost' IDENTIFIED BY 'StrongPassword123!';
-GRANT SELECT, INSERT, UPDATE, DELETE, EXECUTE ON colonia_app.* TO 'colonia_app_user'@'localhost';
-FLUSH PRIVILEGES;
+/*!50001 DROP VIEW IF EXISTS `vista_estado_cuenta`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb3 */;
+/*!50001 SET character_set_results     = utf8mb3 */;
+/*!50001 SET collation_connection      = utf8mb3_general_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `vista_estado_cuenta` AS select `u`.`id` AS `usuario_id`,`u`.`nombre` AS `nombre`,`u`.`correo` AS `correo`,`cp`.`id` AS `concepto_id`,`cp`.`nombre` AS `concepto`,`cp`.`tipo` AS `tipo`,`cp`.`total` AS `total_concepto`,coalesce(sum(`p`.`monto`),0) AS `total_pagado`,`cp`.`total` - coalesce(sum(`p`.`monto`),0) AS `saldo_pendiente`,count(`p`.`id`) AS `pagos_realizados`,case when `cp`.`tipo` = 'parcial' then case when count(`p`.`id`) >= `cp`.`mensualidades` then 'pagado' else 'pendiente' end else case when coalesce(sum(`p`.`monto`),0) >= `cp`.`total` then 'pagado' else 'pendiente' end end AS `estado` from ((`usuarios` `u` join `conceptos_pago` `cp`) left join `pagos` `p` on(`p`.`usuario_id` = `u`.`id` and `p`.`concepto_id` = `cp`.`id` and `p`.`estado` = 'pagado')) where `cp`.`activo` = 1 group by `u`.`id`,`cp`.`id` */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
--- Mostrar resumen
-SELECT 'Base de datos creada exitosamente' as mensaje;
-SELECT COUNT(*) as total_usuarios FROM usuarios;
-SELECT COUNT(*) as total_conceptos FROM conceptos_pago;
-SELECT COUNT(*) as total_eventos FROM eventos;
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-02-17 14:17:04
