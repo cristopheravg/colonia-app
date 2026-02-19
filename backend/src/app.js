@@ -12,6 +12,7 @@ import otpRoutes from './routes/otpRoutes.js'
 import userRoutes from './routes/usersRoutes.js';
 import conceptsRoutes from './routes/conceptsRoutes.js'
 import addPaymentsRoutes from './routes/addPaymentRoutes.js'
+import scannerQRRoutes from './routes/scanQRRoutes.js'
        
 
 
@@ -52,6 +53,7 @@ app.use('/api/noticias', newsRoutes);
 app.use('/api/otp', otpRoutes)
 app.use('/api/conceptos', conceptsRoutes)
 app.use('/api/pagos', addPaymentsRoutes)
+app.use('/api/asistencias', scannerQRRoutes)
 
 
 

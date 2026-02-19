@@ -52,7 +52,7 @@ const events = ref([])
     try {
       const token = localStorage.getItem('colonia_token')
 
-      const response = await fetch('http://54.227.139.118:3000/api/eventos', {
+      const response = await fetch('/api/eventos', {
         headers: {
           Authorization: `Bearer ${token}`
         }

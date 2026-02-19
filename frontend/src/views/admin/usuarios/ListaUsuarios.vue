@@ -89,7 +89,7 @@ const usuario = ref({})
 // Token y URL del backend
 const token = localStorage.getItem('colonia_token')
 const api = axios.create({
-  baseURL: 'http://54.227.139.118:3000/api', // 🔹 apunta directo a tu backend
+  baseURL: '/api', // 🔹 apunta directo a tu backend
   headers: { Authorization: `Bearer ${token}` }
 })
 

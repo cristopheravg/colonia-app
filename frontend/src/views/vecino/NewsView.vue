@@ -49,7 +49,7 @@ onMounted(async () => {
   try {
     const token = localStorage.getItem('colonia_token')
 
-    const response = await fetch('http://54.227.139.118:3000/api/noticias', {
+    const response = await fetch('/api/noticias', {
       headers: {
         Authorization: `Bearer ${token}`
       }

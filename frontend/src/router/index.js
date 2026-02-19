@@ -17,6 +17,9 @@ const UsuariosIndex = () => import('@/views/admin/usuarios/ListaUsuarios.vue')
 const ActiveEventsView = () => import('@/views/admin/eventos/ActiveEventsView.vue')
 const ActiveNewsView = () => import('@/views/admin/noticias/ActiveNewsView.vue')
 
+const AsistenciasView = () => import('@/views/admin/asistencia/RegistroAsistenciaView.vue')
+
+
 const AdminPagosView = ()  => import('@/views/admin/pagos/AdminPagosView.vue')
 const ConceptosView = () => import('@/views/admin/pagos/ConceptosView.vue')
 const UsuariosPagosView = () => import('@/views/admin/pagos/UsuariosPagosView.vue')
@@ -83,6 +86,8 @@ const routes = [
       { path: 'usuarios', component: UsuariosIndex },
       { path: 'eventos', component: ActiveEventsView },
       { path: 'noticias', component: ActiveNewsView },
+      { path: 'asistencias', component: AsistenciasView },
+
       // 🔹 PAGOS
       { path: 'pagos', component: AdminPagosView },
       { path: 'pagos/conceptos', component: ConceptosView },

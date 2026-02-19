@@ -88,7 +88,7 @@ const editingId = ref(null)
 
 const token = localStorage.getItem('colonia_token')
 const api = axios.create({
-  baseURL: 'http://54.227.139.118:3000/api',
+  baseURL: '/api',
   headers: {
     Authorization: `Bearer ${token}`
   }
