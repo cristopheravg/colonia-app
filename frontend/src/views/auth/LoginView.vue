@@ -36,11 +36,11 @@
         </transition>
       </form>
       
-      <div class="test-accounts">
+      <!--<div class="test-accounts">
         <p><strong>Cuentas de prueba:</strong></p>
         <p>Admin: admin@colonia.com / admin123</p>
         <p>Vecino: maria@vecino.com / maria123</p>
-      </div>
+      </div>-->
     </div>
   </div>
 </template>
