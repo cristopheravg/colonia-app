@@ -24,7 +24,7 @@ jobs:
             #cd frontend
             #npm install
             #npm run build
-            echo "hola" > prueba.txt
+            echo "hola mundo..." > prueba.txt
 
             # BACKEND
             # cd ../backend
