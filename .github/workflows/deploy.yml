@@ -17,16 +17,31 @@ jobs:
           username: admin
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # CARGAR NVM (para que npm y node funcionen)
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm use 20
+            
+            # VERIFICACIÓN (opcional)
+            echo "✅ Usando Node: $(node -v)"
+            echo "✅ Usando NPM: $(npm -v)"
+            
+            # IR AL DIRECTORIO DEL PROYECTO
             cd /var/www/colonia-app
             git pull origin main
 
             # FRONTEND
-            #cd frontend
-            #npm install
-            #npm run build
-            echo "hola mundo..." > prueba.txt
-
+            cd frontend
+            echo "📦 Instalando frontend..."
+            npm install
+            echo "🔨 Haciendo build del frontend..."
+            npm run build
+            
             # BACKEND
-            # cd ../backend
-             #npm install
-             #pm2 restart colonia-backend || pm2 start src/app.js --name colonia-backend
+            cd ../backend
+            echo "📦 Instalando backend..."
+            npm install
+            echo "🚀 Reiniciando PM2..."
+            pm2 restart colonia-backend || pm2 start src/app.js --name colonia-backend
+            
+            echo "✅ DEPLOY COMPLETADO!"
