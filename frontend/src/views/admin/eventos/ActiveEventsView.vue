@@ -7,6 +7,9 @@
       </button>
     </div>
 
+        <button class="btn-primary" @click="goToAsistencias">
+      📋 Asistencias
+    </button>
     <!-- Lista de eventos -->
     <div v-if="!loading && sortedEvents.length" class="events-list">
       <div
@@ -194,6 +197,10 @@ const deleteEvent = async (id) => {
   }
 }
 
+
+const goToAsistencias = () => {
+  window.location.href = '/asistencias'
+}
 
 onMounted(async () => {
   loading.value = true
