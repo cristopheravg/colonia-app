@@ -199,7 +199,7 @@ const deleteEvent = async (id) => {
 
 
 const goToAsistencias = () => {
-  window.location.href = '/asistencias'
+  window.location.href = 'asistencias'
 }
 
 onMounted(async () => {
