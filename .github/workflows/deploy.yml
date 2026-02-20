@@ -1,0 +1,31 @@
+name: Deploy colonia app
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: parajedorteoarango.com
+          username: admin
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/colonia-app
+            git pull origin main
+
+            # FRONTEND
+            cd frontend
+            npm install
+            npm run build
+
+            # BACKEND
+            cd ../backend
+            npm install
+            pm2 restart colonia-backend || pm2 start src/app.js --name colonia-backend
