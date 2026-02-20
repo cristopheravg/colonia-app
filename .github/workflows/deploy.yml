@@ -17,7 +17,7 @@ jobs:
           username: admin
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/admin/nueva
+            cd /var/www/colonia-app
             git pull origin main
 
             # FRONTEND
