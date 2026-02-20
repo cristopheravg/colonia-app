@@ -26,6 +26,6 @@ jobs:
             npm run build
 
             # BACKEND
-            cd ../backend
-            npm ci
-            pm2 restart colonia-backend || pm2 start src/app.js --name colonia-backend
+            # cd ../backend
+            # npm ci
+            # pm2 restart colonia-backend || pm2 start src/app.js --name colonia-backend
