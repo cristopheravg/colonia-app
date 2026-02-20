@@ -1,9 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import os from 'os';  // ← IMPORTANTE: faltaba esta línea
 import { testConnection } from './config/database.js';
 
-// Importar rutas (tuyas)
+// Importar rutas
 import authRoutes from './routes/authRoutes.js';
 import balanceRoutes from './routes/balanceRoutes.js';
 import eventRoutes from './routes/eventsRoutes.js'; 
@@ -21,11 +22,70 @@ const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0';
 const isDev = process.env.NODE_ENV === 'development';
 
+// =============================================
+// FUNCIÓN PARA OBTENER IP LOCAL
+// =============================================
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return 'localhost';
+}
+
+const localIP = getLocalIP();
+
+// =============================================
+// CONFIGURACIÓN CORS PROFESIONAL
+// =============================================
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  `http://${localIP}:5173`,
+  /^http:\/\/192\.168\.\d+\.\d+:5173$/,  // Cualquier IP en red local
+  'https://54.227.139.118',  // Tu servidor de producción
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+// Middleware CORS personalizado (más flexible que el simple)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Log para debug (solo desarrollo)
+  if (isDev) {
+    console.log('🌐 Origen:', origin);
+  }
+  
+  // Verificar si el origen está permitido
+  if (origin) {
+    const allowed = allowedOrigins.some(allowed => {
+      if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return allowed === origin;
+    });
+    
+    if (allowed) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    }
+  }
+  
+  // Manejar preflight requests (OPTIONS)
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
+
 // Middlewares básicos
-app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'],
-  credentials: true
-}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -88,7 +148,7 @@ app.use('/api/*', (req, res) => {
 });
 
 // 404 general
-app.use((req, res) => {
+app.use((req, res) => { 
   res.status(404).json({
     success: false,
     message: 'Ruta no encontrada'
@@ -116,14 +176,19 @@ async function startServer() {
     }
     
     app.listen(PORT, HOST, () => {
-      console.log('\n' + '='.repeat(50));
-      console.log(`🚀 Servidor corriendo:`);
-      console.log(`   Local:   http://localhost:${PORT}`);
-      console.log(`   Red:     http://${HOST}:${PORT}`);
-      console.log(`   IP fija: http://54.227.139.118:${PORT}`);
-      console.log(`   Entorno: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`   DB:      ${process.env.DB_NAME} (conectada)`);
-      console.log('='.repeat(50) + '\n');
+      console.log('\n' + '='.repeat(60));
+      console.log('🚀 SERVIDOR INICIADO');
+      console.log('='.repeat(60));
+      console.log(`📡 Local:    http://localhost:${PORT}`);
+      console.log(`🌐 Red:      http://${localIP}:${PORT}`);
+      console.log(`🔗 IP fija:  http://54.227.139.118:${PORT}`);
+      console.log(`📊 Entorno:  ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🗄️  DB:       ${process.env.DB_NAME} (conectada)`);
+      console.log('\n📋 Orígenes CORS permitidos:');
+      allowedOrigins.forEach(o => {
+        console.log(`   - ${o instanceof RegExp ? o.toString() : o}`);
+      });
+      console.log('='.repeat(60) + '\n');
     });
     
   } catch (error) {

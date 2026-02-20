@@ -8,6 +8,8 @@ export default defineConfig({
   plugins: [
     vue(),
     vueDevTools(),
+
+
   ],
   resolve: {
     alias: {
@@ -16,6 +18,16 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: true, // 👈 IMPORTANTE: Permite conexiones externas
+    allowedHosts: [ // 👈 Permite dominios de ngrok
+      'localhost',
+      '127.0.0.1',
+      '.ngrok-free.dev',  // Tu dominio actual
+      '.ngrok.io',        // Dominio antiguo
+      '.ngrok.app'        // Dominio nuevo
+    ],
+
+
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

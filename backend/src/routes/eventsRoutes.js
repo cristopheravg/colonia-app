@@ -76,34 +76,34 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
      * PUT /api/eventos/:id
      * Solo admin
      */
-router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const { id } = req.params;
-    let { nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes } = req.body;
+  router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      let { nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes } = req.body;
 
-    // 🔥 Limpiar datos
-    fecha_fin = fecha_fin === '' ? null : fecha_fin;
-    lugar = lugar === '' ? null : lugar;
-    max_asistentes = max_asistentes || 0;
+      // 🔥 Limpiar datos
+      fecha_fin = fecha_fin === '' ? null : fecha_fin;
+      lugar = lugar === '' ? null : lugar;
+      max_asistentes = max_asistentes || 0;
 
-    const [result] = await pool.query(
-      `UPDATE eventos 
-       SET nombre = ?, descripcion = ?, fecha_inicio = ?, fecha_fin = ?, lugar = ?, max_asistentes = ?
-       WHERE id = ?`,
-      [nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes, id]
-    );
+      const [result] = await pool.query(
+        `UPDATE eventos 
+        SET nombre = ?, descripcion = ?, fecha_inicio = ?, fecha_fin = ?, lugar = ?, max_asistentes = ?
+        WHERE id = ?`,
+        [nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes, id]
+      );
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Evento no encontrado' });
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ success: false, message: 'Evento no encontrado' });
+      }
+
+      res.json({ success: true, message: 'Evento actualizado' });
+
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ success: false, message: 'Error al actualizar evento' });
     }
-
-    res.json({ success: true, message: 'Evento actualizado' });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Error al actualizar evento' });
-  }
-});
+  });
 
 
 
@@ -132,6 +132,68 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
         res.status(500).json({ success: false, message: 'Error al eliminar evento' })
     }
     })
+
+
+/**
+ * GET /api/eventos/hoy
+ * Obtiene eventos del día actual
+ */
+router.get('/hoy', authMiddleware, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes
+       FROM eventos
+       WHERE activo = TRUE 
+         AND DATE(fecha_inicio) = CURDATE()
+       ORDER BY fecha_inicio ASC`
+    );
+
+    res.json({ 
+      success: true, 
+      data: rows,
+      fecha: new Date().toISOString().split('T')[0]
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al obtener eventos del día' 
+    });
+  }
+});
+
+
+
+/**
+ * GET /api/eventos/hoy
+ * Obtiene eventos del día actual
+ */
+router.get('/hoy', authMiddleware, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, nombre, descripcion, fecha_inicio, fecha_fin, lugar, max_asistentes
+       FROM eventos
+       WHERE activo = TRUE 
+         AND DATE(fecha_inicio) = CURDATE()
+       ORDER BY fecha_inicio ASC`
+    );
+
+    res.json({ 
+      success: true, 
+      data: rows,
+      fecha: new Date().toISOString().split('T')[0]
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al obtener eventos del día' 
+    });
+  }
+});
+
+
+
 
 
 
