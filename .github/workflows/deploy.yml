@@ -17,16 +17,16 @@ jobs:
           username: admin
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /var/www/colonia-app
+            cd /home/admin/nueva
             git pull origin main
 
             # FRONTEND
-            cd frontend
-            npm install
-            npm run build
+            #cd frontend
+            #npm install
+            #npm run build
             echo "hola" > prueba.txt
 
             # BACKEND
-             cd ../backend
+            # cd ../backend
              #npm install
              #pm2 restart colonia-backend || pm2 start src/app.js --name colonia-backend
