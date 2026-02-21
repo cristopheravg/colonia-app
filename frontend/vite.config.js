@@ -15,9 +15,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Colonia App',
-        short_name: 'Colonia',
-        description: 'App de administración de colonia',
+        name: 'Paraje Doroteo',
+        short_name: 'Paraje Doroteo',
+        description: 'App gestión paraje',
         theme_color: '#0d6efd',
         background_color: '#ffffff',
         display: 'standalone',
