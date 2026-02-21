@@ -44,27 +44,14 @@ jobs:
             git pull origin main
             
             # ============================================
-            # FRONTEND - CORREGIDO
+            # FRONTEND
             # ============================================
             echo "🔧 Construyendo frontend..."
             cd frontend
             
-            # Verificar contenido del package.json
-            echo "📋 Verificando dependencias..."
-            cat package.json | grep -A 10 "\"dependencies\""
-            cat package.json | grep -A 10 "\"devDependencies\""
-            
-            # Limpiar node_modules (opcional, si hay problemas)
-            # rm -rf node_modules package-lock.json
-            
             # Instalar TODAS las dependencias (necesario para build)
             echo "📦 Instalando dependencias completas..."
-            npm ci  # Sin filtros, instala todo lo que está en package-lock.json
-            
-            # Verificar que vite está instalado
-            echo "🔍 Verificando instalación de vite..."
-            ls -la node_modules/.bin/vite || echo "vite no encontrado en .bin"
-            npm list vite --depth=0
+            npm ci
             
             echo "🔨 Ejecutando build..."
             npm run build
@@ -72,7 +59,6 @@ jobs:
             # Verificar que el build se completó
             if [ -d "dist" ]; then
               echo "✅ Build completado! Carpeta dist creada"
-              ls -la dist/
             else
               echo "❌ ERROR: No se creó la carpeta dist"
               exit 1
@@ -94,10 +80,6 @@ jobs:
               exit 1
             fi
             
-            # MOSTRAR CONFIGURACIÓN ACTUAL
-            echo "📋 Configuración de PM2:"
-            cat ecosystem.config.cjs
-            
             # DETENER APLICACIÓN ACTUAL (si existe)
             echo "🛑 Deteniendo instancia anterior..."
             pm2 delete colonia-backend 2>/dev/null || true
@@ -110,12 +92,28 @@ jobs:
             echo "⏳ Verificando que la app se mantenga viva (5s)..."
             sleep 5
             
-            # VERIFICAR ESTADO
+            # ============================================
+            # VERIFICACIÓN CORREGIDA
+            # ============================================
+            echo "📊 Verificando estado del backend..."
+            
+            # Mostrar estado completo
+            pm2 status
+            
+            # Verificar que está online
             if pm2 status | grep -q "colonia-backend.*online"; then
               echo "✅ Backend iniciado correctamente"
-              pm2 show colonia-backend | grep "memory"
+              
+              # Mostrar información detallada (versión corregida)
+              echo "📋 Información detallada:"
+              pm2 show colonia-backend | grep -E "status|memory|cpu|restarts|uptime" || true
+              
+              # Mostrar uso de memoria actual
+              echo "📊 Memoria actual:"
+              pm2 prettylist | grep -A 5 "colonia-backend" | grep "memory" || echo "   Memoria: disponible"
             else
-              echo "❌ ERROR: La app no está online"
+              echo "❌ ERROR: La app no está online después de 5s"
+              echo "📋 Últimos logs:"
               pm2 logs colonia-backend --lines 20 --nostream
               exit 1
             fi
@@ -125,6 +123,14 @@ jobs:
             # ============================================
             echo "💾 Guardando configuración para reinicios..."
             pm2 save
+            
+            # Verificar que se guardó
+            if [ $? -eq 0 ]; then
+              echo "✅ Configuración guardada correctamente"
+            else
+              echo "❌ ERROR: No se pudo guardar la configuración"
+              exit 1
+            fi
             
             # ============================================
             # VERIFICACIÓN FINAL
