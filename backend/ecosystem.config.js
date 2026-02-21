@@ -1,11 +1,13 @@
 module.exports = {
   apps : [{
-    name: "paraje-doroteo-app",         // Nombre de tu aplicación
-    script: "src/app.js",        // Archivo principal de tu app
-    node_args: "--max-old-space-size=512", // Límite de memoria para Node.js
-    max_memory_restart: "600M",             // Reinicio por alto consumo
+    name: "colonia-backend",
+    cwd: "/var/www/colonia-app/backend",  // Directorio de trabajo
+    script: "src/app.js",                   // Ruta completa al archivo
+    node_args: "--max-old-space-size=512",
+    max_memory_restart: "600M",
     env: {
       NODE_ENV: "production",
-    },
+      PORT: 3000
+    }
   }]
 }
