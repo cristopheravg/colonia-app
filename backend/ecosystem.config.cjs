@@ -1,8 +1,7 @@
-export default {
-  apps : [{
+module.exports = {
+  apps: [{
     name: "colonia-backend",
-    cwd: "/var/www/colonia-app/backend",
-    script: "src/app.js",
+    script: "/var/www/colonia-app/backend/src/app.js",
     node_args: "--max-old-space-size=512",
     max_memory_restart: "600M",
     env: {
@@ -11,3 +10,5 @@ export default {
     }
   }]
 }
+
+
