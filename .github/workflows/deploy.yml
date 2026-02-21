@@ -44,20 +44,48 @@ jobs:
             git pull origin main
             
             # ============================================
-            # FRONTEND
+            # FRONTEND - CORREGIDO
             # ============================================
             echo "🔧 Construyendo frontend..."
             cd frontend
-            npm ci --only=production  # Más rápido y determinista que npm install
+            
+            # Verificar contenido del package.json
+            echo "📋 Verificando dependencias..."
+            cat package.json | grep -A 10 "\"dependencies\""
+            cat package.json | grep -A 10 "\"devDependencies\""
+            
+            # Limpiar node_modules (opcional, si hay problemas)
+            # rm -rf node_modules package-lock.json
+            
+            # Instalar TODAS las dependencias (necesario para build)
+            echo "📦 Instalando dependencias completas..."
+            npm ci  # Sin filtros, instala todo lo que está en package-lock.json
+            
+            # Verificar que vite está instalado
+            echo "🔍 Verificando instalación de vite..."
+            ls -la node_modules/.bin/vite || echo "vite no encontrado en .bin"
+            npm list vite --depth=0
+            
+            echo "🔨 Ejecutando build..."
             npm run build
             
+            # Verificar que el build se completó
+            if [ -d "dist" ]; then
+              echo "✅ Build completado! Carpeta dist creada"
+              ls -la dist/
+            else
+              echo "❌ ERROR: No se creó la carpeta dist"
+              exit 1
+            fi
+            
             # ============================================
-            # BACKEND - MÁXIMA SEGURIDAD
+            # BACKEND
             # ============================================
             echo "🔧 Configurando backend..."
             cd ../backend
             
-            # Instalar dependencias (producción)
+            # Instalar dependencias de producción
+            echo "📦 Instalando dependencias del backend..."
             npm ci --only=production
             
             # VERIFICAR QUE EL ARCHIVO DE CONFIGURACIÓN EXISTE
@@ -74,9 +102,6 @@ jobs:
             echo "🛑 Deteniendo instancia anterior..."
             pm2 delete colonia-backend 2>/dev/null || true
             
-            # LIMPIAR CACHE DE PM2 (opcional pero recomendado)
-            pm2 flush
-            
             # INICIAR CON NUEVA CONFIGURACIÓN
             echo "🚀 Iniciando backend con ecosystem..."
             pm2 start ecosystem.config.cjs
@@ -88,16 +113,9 @@ jobs:
             # VERIFICAR ESTADO
             if pm2 status | grep -q "colonia-backend.*online"; then
               echo "✅ Backend iniciado correctamente"
-              
-              # MOSTRAR ESTADO
-              pm2 status
-              
-              # MOSTRAR MEMORIA
-              echo "📊 Consumo de memoria:"
               pm2 show colonia-backend | grep "memory"
             else
-              echo "❌ ERROR: La app no está online después de 5s"
-              echo "📋 Últimos logs:"
+              echo "❌ ERROR: La app no está online"
               pm2 logs colonia-backend --lines 20 --nostream
               exit 1
             fi
@@ -107,25 +125,6 @@ jobs:
             # ============================================
             echo "💾 Guardando configuración para reinicios..."
             pm2 save
-            
-            # VERIFICAR QUE EL DUMP SE CREÓ
-            if [ -f ~/.pm2/dump.pm2 ]; then
-              echo "✅ Configuración guardada correctamente"
-            else
-              echo "❌ ERROR: No se pudo guardar la configuración"
-              exit 1
-            fi
-            
-            # ============================================
-            # VERIFICAR SERVICIO DE STARTUP
-            # ============================================
-            echo "🔍 Verificando servicio de startup..."
-            if systemctl is-enabled pm2-admin >/dev/null 2>&1; then
-              echo "✅ Servicio pm2-admin está habilitado"
-            else
-              echo "⚠️  Servicio pm2-admin no está habilitado, configurando..."
-              pm2 startup
-            fi
             
             # ============================================
             # VERIFICACIÓN FINAL
