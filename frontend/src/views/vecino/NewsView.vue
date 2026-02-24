@@ -80,10 +80,10 @@
                     <span class="meta-text">{{ formatRelativeDate(news.fecha_publicacion) }}</span>
                   </div>
                   
-                  <div class="meta-item">
+                  <!--<div class="meta-item">
                     <span class="meta-icon">👁️</span>
                     <span class="meta-text">{{ news.visitas || 0 }} vistas</span>
-                  </div>
+                  </div>-->
                 </div>
               </div>
 
@@ -108,40 +108,30 @@
         </div>
       </div>
 
-      <!-- Bottom sheet para noticia completa -->
-      <transition name="modal-transition">
-        <div v-if="selectedNews" class="bottom-sheet" @click.self="closeNewsDetails">
-          <div class="sheet-content">
-            <div class="sheet-handle"></div>
-            
-            <div class="sheet-header">
-              <h2>{{ selectedNews.titulo }}</h2>
-              <button class="close-btn" @click="closeNewsDetails">✕</button>
-            </div>
-
-            <div class="sheet-body">
-              <!-- Metadata -->
-              <div class="sheet-meta">
-                <span class="meta-date">
-                  📅 {{ formatDate(selectedNews.fecha_publicacion) }}
-                </span>
-                <span class="meta-views" v-if="selectedNews.visitas">
-                  👁️ {{ selectedNews.visitas }} vistas
-                </span>
-                <span class="meta-badge" v-if="selectedNews.destacada">🌟 Destacada</span>
+      <!-- Modal centrado para noticia completa (con padding para navbar) -->
+      <transition name="modal-fade">
+        <div v-if="selectedNews" class="modal-overlay" @click.self="closeNewsDetails">
+          <div class="modal-container">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h2>{{ selectedNews.titulo }}</h2>
+                <button class="modal-close" @click="closeNewsDetails">✕</button>
               </div>
 
-              <!-- CORREGIDO: Contenido completo con v-html -->
-              <div class="sheet-description" v-html="selectedNews.contenido"></div>
+              <div class="modal-body">
+                <!-- Metadata -->
+                <div class="modal-meta">
+                  <span class="meta-date">
+                    📅 {{ formatDate(selectedNews.fecha_publicacion) }}
+                  </span>
+                  <span class="meta-views" v-if="selectedNews.visitas">
+                    👁️ {{ selectedNews.visitas }} vistas
+                  </span>
+                  <span class="meta-badge" v-if="selectedNews.destacada">🌟 Destacada</span>
+                </div>
 
-              <!-- Acciones -->
-              <div class="sheet-actions">
-                <button class="action-btn primary" @click="shareNews">
-                  🔗 Compartir noticia
-                </button>
-                <button class="action-btn secondary" @click="markAsRead">
-                  📌 Marcar como leída
-                </button>
+                <!-- Contenido completo con v-html -->
+                <div class="modal-description" v-html="selectedNews.contenido"></div>
               </div>
             </div>
           </div>
@@ -316,17 +306,6 @@ const openNewsDetails = (news) => {
 const closeNewsDetails = () => {
   selectedNews.value = null
   document.body.style.overflow = ''
-}
-
-const shareNews = () => {
-  if (selectedNews.value) {
-    alert('Compartir noticia: ' + selectedNews.value.titulo)
-  }
-}
-
-const markAsRead = () => {
-  alert('Noticia marcada como leída')
-  closeNewsDetails()
 }
 
 // Lifecycle
@@ -556,7 +535,7 @@ onUnmounted(() => {
 .news-title {
   margin: 0;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: bold;
   color: #0f172a;
   line-height: 1.4;
 }
@@ -571,7 +550,7 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-/* CORREGIDO: Estilos para la descripción con HTML */
+/* Estilos para la descripción con HTML */
 .news-description {
   font-size: 0.85rem;
   color: #475569;
@@ -582,8 +561,8 @@ onUnmounted(() => {
   -webkit-box-orient: vertical;
   overflow: hidden;
   word-break: break-word;
-  text-align: justify; /* Texto justificado */
 }
+
 .news-description p {
   margin: 0 0 4px 0;
 }
@@ -699,69 +678,88 @@ onUnmounted(() => {
   background: #1d4ed8;
 }
 
-/* ===== BOTTOM SHEET ===== */
-.modal-transition-enter-active,
-.modal-transition-leave-active {
+/* ===== MODAL CENTRADO CON PADDING PARA NAVBAR ===== */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.modal-transition-enter-from,
-.modal-transition-leave-to {
+.modal-fade-enter-from,
+.modal-fade-leave-to {
   opacity: 0;
 }
 
-.modal-transition-enter-from .sheet-content,
-.modal-transition-leave-to .sheet-content {
-  transform: translateY(100%);
+.modal-fade-enter-from .modal-content,
+.modal-fade-leave-to .modal-content {
+  transform: scale(0.95) translateY(10px);
+  opacity: 0;
 }
 
-.bottom-sheet {
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
-  z-index: 100;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  z-index: 1000;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  /* Importante: padding inferior extra para la navbar */
+  padding-bottom: calc(20px + 70px); /* 70px es el alto aproximado de la navbar */
 }
 
-.sheet-content {
-  background: white;
-  border-radius: 24px 24px 0 0;
+.modal-container {
   width: 100%;
+  max-width: 500px;
+  max-height: 80vh; /* Reducido para dejar espacio a la navbar */
+  margin: auto;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: modalAppear 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
   max-height: 80vh;
-  overflow-y: auto;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.sheet-handle {
-  width: 40px;
-  height: 4px;
-  background: #e2e8f0;
-  border-radius: 4px;
-  margin: 12px auto;
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
-.sheet-header {
+.modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 20px 24px;
   border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+    font-family: 'Times New Roman', Times, serif;
 }
 
-.sheet-header h2 {
-  font-size: 1.2rem;
+.modal-header h2 {
+  font-size: 1.25rem;
   font-weight: 600;
   color: #0f172a;
   margin: 0;
   padding-right: 12px;
 }
 
-.close-btn {
+.modal-close {
   width: 36px;
   height: 36px;
   border-radius: 36px;
@@ -773,13 +771,28 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
-.sheet-body {
-  padding: 20px;
+.modal-close:hover {
+  background: #e2e8f0;
+  color: #475569;
 }
 
-.sheet-meta {
+.modal-close:active {
+  transform: scale(0.95);
+}
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+  /* Padding inferior extra para el último elemento */
+  padding-bottom: 32px;
+}
+
+.modal-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -790,82 +803,43 @@ onUnmounted(() => {
   color: #64748b;
 }
 
-.sheet-meta span {
+.modal-meta span {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.sheet-meta .meta-badge {
+.modal-meta .meta-badge {
   background: #fef3c7;
   color: #92400e;
   padding: 2px 8px;
   border-radius: 12px;
 }
 
-/* CORREGIDO: Estilos para el contenido completo */
-.sheet-description {
-  margin-bottom: 24px;
+.modal-description {
   font-size: 0.95rem;
   color: #334155;
   line-height: 1.6;
   word-break: break-word;
-  text-align: justify; /* Texto justificado */
+  text-align: justify;
+  /* Espacio extra al final */
+  margin-bottom: 16px;
+  font-family: 'Times New Roman', Times, serif;
 }
 
-.sheet-description p {
+.modal-description p {
   margin: 0 0 12px 0;
-  text-align: justify; /* Texto justificado */
+  text-align: justify;
 }
 
-.sheet-description p:last-child {
+.modal-description p:last-child {
   margin-bottom: 0;
 }
 
-.sheet-description br {
+.modal-description br {
   display: block;
   content: "";
   margin-top: 8px;
-}
-
-.sheet-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.sheet-actions .action-btn {
-  flex: 1;
-  height: 48px;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: none;
-  cursor: pointer;
-}
-
-.sheet-actions .primary {
-  background: #2563eb;
-  color: white;
-}
-
-.sheet-actions .primary:active {
-  background: #1d4ed8;
-  transform: scale(0.98);
-}
-
-.sheet-actions .secondary {
-  background: #f1f5f9;
-  color: #334155;
-}
-
-.sheet-actions .secondary:active {
-  background: #e2e8f0;
-  transform: scale(0.98);
 }
 
 /* Animaciones */
@@ -908,12 +882,22 @@ onUnmounted(() => {
     padding: 14px;
   }
 
-  .sheet-header h2 {
+  .modal-overlay {
+    padding: 12px;
+    padding-bottom: calc(12px + 70px); /* Ajuste para móvil */
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+  }
+
+  .modal-header h2 {
     font-size: 1.1rem;
   }
-  
-  .sheet-actions {
-    flex-direction: column;
+
+  .modal-body {
+    padding: 20px;
+    padding-bottom: 28px;
   }
 }
 
@@ -928,6 +912,27 @@ onUnmounted(() => {
 
   .news-list-container {
     background: #f8fafc;
+  }
+
+  .modal-overlay {
+    padding-bottom: calc(20px + 80px); /* Ajuste para desktop */
+  }
+}
+
+/* Ajuste específico para dispositivos muy pequeños */
+@media (max-width: 380px) {
+  .modal-overlay {
+    padding: 8px;
+    padding-bottom: 20px;
+  }
+
+  .modal-header {
+    padding: 14px 16px;
+  }
+
+  .modal-body {
+    padding: 16px;
+    padding-bottom: 100px;
   }
 }
 </style>

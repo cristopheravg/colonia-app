@@ -4,7 +4,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('./fonts/inter-thin.woff2') format('woff2');
+  src: url('../fonts/inter-thin.woff2') format('woff2');
   font-weight: 100;
   font-style: normal;
   font-display: swap;
@@ -12,7 +12,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('./fonts/inter-extralight.woff2') format('woff2');
+  src: url('../fonts/inter-extralight.woff2') format('woff2');
   font-weight: 200;
   font-style: normal;
   font-display: swap;
@@ -20,7 +20,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('./fonts/inter-light.woff2') format('woff2');
+  src: url('../fonts/inter-light.woff2') format('woff2');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
@@ -28,7 +28,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('./fonts/inter-regular.woff2') format('woff2');
+  src: url('../fonts/inter-regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -36,7 +36,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('./fonts/inter-medium.woff2') format('woff2');
+  src: url('../fonts/inter-medium.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -44,7 +44,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('./fonts/inter-semibold.woff2') format('woff2');
+  src: url('../fonts/inter-semibold.woff2') format('woff2');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -52,7 +52,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('./fonts/inter-bold.woff2') format('woff2');
+  src: url('../fonts/inter-bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -60,7 +60,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('./fonts/inter-extrabold.woff2') format('woff2');
+  src: url('../fonts/inter-extrabold.woff2') format('woff2');
   font-weight: 800;
   font-style: normal;
   font-display: swap;
@@ -68,7 +68,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('./fonts/inter-black.woff2') format('woff2');
+  src: url('../fonts/inter-black.woff2') format('woff2');
   font-weight: 900;
   font-style: normal;
   font-display: swap;
@@ -85,4 +85,97 @@ body {
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /*background: #f5f5f5;*/
+  background: #f5f7fa;
+
+   background: linear-gradient(145deg, #f0f4f8 0%, #f8fafc 100%);
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.02) 0%, transparent 30%),
+    radial-gradient(circle at 90% 70%, rgba(37, 99, 235, 0.02) 0%, transparent 35%),
+    repeating-linear-gradient(45deg, rgba(37, 99, 235, 0.01) 0px, rgba(37, 99, 235, 0.01) 2px, transparent 2px, transparent 30px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ===== PROTECCIÓN CONTRA INTERACCIONES NO DESEADAS ===== */
+* {
+  /* Evitar selección de texto en todo el sitio */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  
+  /* Evitar el menú contextual al hacer tap largo */
+  -webkit-touch-callout: none;
+  
+  /* Evitar que los elementos sean arrastrables */
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+}
+
+/* Permitir selección solo en inputs y textareas (útil para formularios) */
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* Evitar el zoom en inputs en iOS */
+input, select, textarea {
+  font-size: 16px; /* Evita el zoom automático en iOS */
+}
+
+/* Deshabilitar el menú contextual en toda la app */
+body {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
+  
+  /* Evitar que se pueda hacer zoom con gestos */
+  touch-action: pan-y pinch-zoom; /* Permite scroll vertical pero no zoom */
+}
+
+/* Deshabilitar el efecto de tap highlight en móviles */
+a, button, .clickable {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+/* Evitar el zoom en doble tap */
+* {
+  touch-action: manipulation; /* Optimiza el touch y evita el doble tap zoom */
+}
+
+/* Si quieres permitir zoom solo en imágenes específicas */
+img.allow-zoom {
+  touch-action: pinch-zoom;
 }

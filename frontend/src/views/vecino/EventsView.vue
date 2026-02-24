@@ -117,41 +117,41 @@
         </div>
       </div>
 
-      <!-- Bottom sheet con transición tipo móvil -->
-      <transition name="modal-transition">
-        <div v-if="selectedEvent" class="bottom-sheet" @click.self="closeEventDetails">
-          <div class="sheet-content">
-            <div class="sheet-handle"></div>
-            
-            <div class="sheet-header">
-              <h2>{{ selectedEvent.nombre }}</h2>
-              <button class="close-btn" @click="closeEventDetails">✕</button>
-            </div>
-
-            <div class="sheet-body">
-              <div class="detail-section">
-                <span class="detail-label">Fecha y hora</span>
-                <span class="detail-value">{{ formatDate(selectedEvent.fecha_inicio) }}</span>
-                <span v-if="selectedEvent.hora" class="detail-value time">{{ selectedEvent.hora }}</span>
+      <!-- Modal centrado en lugar de bottom sheet -->
+      <transition name="modal-fade">
+        <div v-if="selectedEvent" class="modal-overlay" @click.self="closeEventDetails">
+          <div class="modal-container">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h2>{{ selectedEvent.nombre }}</h2>
+                <button class="modal-close" @click="closeEventDetails">✕</button>
               </div>
 
-              <div class="detail-section" v-if="selectedEvent.lugar">
-                <span class="detail-label">Lugar</span>
-                <span class="detail-value">{{ selectedEvent.lugar }}</span>
-              </div>
+              <div class="modal-body">
+                <div class="detail-section">
+                  <span class="detail-label">Fecha y hora</span>
+                  <span class="detail-value">{{ formatDate(selectedEvent.fecha_inicio) }}</span>
+                  <span v-if="selectedEvent.hora" class="detail-value time">{{ selectedEvent.hora }}</span>
+                </div>
 
-              <div class="detail-section">
-                <span class="detail-label">Descripción</span>
-                <p class="detail-description">{{ selectedEvent.descripcion }}</p>
-              </div>
+                <div class="detail-section" v-if="selectedEvent.lugar">
+                  <span class="detail-label">Lugar</span>
+                  <span class="detail-value">{{ selectedEvent.lugar }}</span>
+                </div>
 
-              <div class="sheet-actions">
-                <button class="action-btn primary" @click="addToCalendar">
-                  📅 Agregar a calendario
-                </button>
-                <button class="action-btn secondary" @click="shareEvent">
-                  🔗 Compartir
-                </button>
+                <div class="detail-section">
+                  <span class="detail-label">Descripción</span>
+                  <p class="detail-description">{{ selectedEvent.descripcion }}</p>
+                </div>
+
+                <!--<div class="modal-actions">
+                  <button class="action-btn primary" @click="addToCalendar">
+                    📅 Agregar a calendario
+                  </button>
+                  <button class="action-btn secondary" @click="shareEvent">
+                    🔗 Compartir
+                  </button>
+                </div>-->
               </div>
             </div>
           </div>
@@ -171,12 +171,12 @@ const isLoading = ref(false)
 const hasMoreEvents = ref(true)
 const page = ref(1)
 const showFilters = ref(false)
-const activeFilter = ref('upcoming') // Cambiado de 'all' a 'upcoming' como default
+const activeFilter = ref('upcoming')
 const selectedEvent = ref(null)
 const isScrolled = ref(false)
 const scrollContainer = ref(null)
 
-// Filtros - SIN LA OPCIÓN "TODOS"
+// Filtros
 const filters = [
   { label: 'Próximos', value: 'upcoming' },
   { label: 'Hoy', value: 'today' },
@@ -203,7 +203,7 @@ const filteredEvents = computed(() => {
       case 'week':
         return eventDate >= today && eventDate <= weekLater
       default:
-        return eventDate >= today // Por defecto, próximos
+        return eventDate >= today
     }
   })
 })
@@ -761,68 +761,81 @@ onUnmounted(() => {
   background: #1d4ed8;
 }
 
-/* ===== BOTTOM SHEET CON TRANSICIÓN MÓVIL ===== */
-.modal-transition-enter-active,
-.modal-transition-leave-active {
+/* ===== MODAL CENTRADO (NUEVO) ===== */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.modal-transition-enter-from,
-.modal-transition-leave-to {
+.modal-fade-enter-from,
+.modal-fade-leave-to {
   opacity: 0;
 }
 
-.modal-transition-enter-from .sheet-content,
-.modal-transition-leave-to .sheet-content {
-  transform: translateY(100%);
+.modal-fade-enter-from .modal-content,
+.modal-fade-leave-to .modal-content {
+  transform: scale(0.95) translateY(10px);
+  opacity: 0;
 }
 
-.bottom-sheet {
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
-  z-index: 100;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  z-index: 1000;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
 }
 
-.sheet-content {
-  background: white;
-  border-radius: 24px 24px 0 0;
+.modal-container {
   width: 100%;
-  max-height: 80vh;
-  overflow-y: auto;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 500px;
+  max-height: 90vh;
+  margin: auto;
 }
 
-.sheet-handle {
-  width: 40px;
-  height: 4px;
-  background: #e2e8f0;
-  border-radius: 4px;
-  margin: 12px auto;
+.modal-content {
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: modalAppear 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.sheet-header {
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 20px 24px;
   border-bottom: 1px solid #f1f5f9;
 }
 
-.sheet-header h2 {
-  font-size: 1.2rem;
+.modal-header h2 {
+  font-size: 1.25rem;
   font-weight: 600;
   color: #0f172a;
   margin: 0;
+  padding-right: 12px;
 }
 
-.close-btn {
+.modal-close {
   width: 36px;
   height: 36px;
   border-radius: 36px;
@@ -834,14 +847,30 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
 }
 
-.sheet-body {
-  padding: 20px;
+.modal-close:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.modal-close:active {
+  transform: scale(0.95);
+}
+
+.modal-body {
+  padding: 24px;
+  max-height: calc(90vh - 140px);
+  overflow-y: auto;
 }
 
 .detail-section {
   margin-bottom: 24px;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
 }
 
 .detail-label {
@@ -850,7 +879,7 @@ onUnmounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: #64748b;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .detail-value {
@@ -863,23 +892,25 @@ onUnmounted(() => {
 .detail-value.time {
   font-size: 0.9rem;
   color: #2563eb;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .detail-description {
   margin: 8px 0 0;
   font-size: 0.95rem;
   color: #334155;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-.sheet-actions {
+.modal-actions {
   display: flex;
   gap: 12px;
   margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #f1f5f9;
 }
 
-.sheet-actions .action-btn {
+.modal-actions .action-btn {
   flex: 1;
   height: 48px;
   border-radius: 12px;
@@ -891,29 +922,67 @@ onUnmounted(() => {
   gap: 8px;
   border: none;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.sheet-actions .primary {
+.modal-actions .primary {
   background: #2563eb;
   color: white;
 }
 
-.sheet-actions .primary:active {
+.modal-actions .primary:active {
   background: #1d4ed8;
   transform: scale(0.98);
 }
 
-.sheet-actions .secondary {
+.modal-actions .secondary {
   background: #f1f5f9;
   color: #334155;
 }
 
-.sheet-actions .secondary:active {
+.modal-actions .secondary:active {
   background: #e2e8f0;
   transform: scale(0.98);
 }
 
-/* Animaciones */
+/* Responsive */
+@media (max-width: 480px) {
+  .modal-content {
+    border-radius: 20px;
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+  }
+
+  .modal-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .modal-body {
+    padding: 20px;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .modal-actions .action-btn {
+    width: 100%;
+  }
+}
+
+@media (min-width: 768px) {
+  .events-view {
+    max-width: 600px;
+    margin: 0 auto;
+    border-left: 1px solid #f1f5f9;
+    border-right: 1px solid #f1f5f9;
+    background: white;
+  }
+}
+
+/* Animaciones existentes */
 .slide-fade-enter-active,
 .slide-fade-leave-active {
   transition: all 0.3s ease;
@@ -923,16 +992,5 @@ onUnmounted(() => {
 .slide-fade-leave-to {
   opacity: 0;
   transform: translateY(-10px);
-}
-
-/* Responsive */
-@media (min-width: 768px) {
-  .events-view {
-    max-width: 600px;
-    margin: 0 auto;
-    border-left: 1px solid #f1f5f9;
-    border-right: 1px solid #f1f5f9;
-    background: white;
-  }
 }
 </style>

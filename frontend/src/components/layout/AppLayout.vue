@@ -36,7 +36,7 @@ const userName = computed(() => authStore.userName)
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
+  background: transparent;
 }
 
 /* ================= HEADER ================= */
@@ -77,6 +77,7 @@ const userName = computed(() => authStore.userName)
   flex: 1;
   padding: 1.5rem;
   overflow-y: auto;
+
   padding-bottom: 100px; /* espacio para bottom nav */
 }
 
@@ -93,6 +94,7 @@ const userName = computed(() => authStore.userName)
   .app-main {
     padding: 1rem;
     padding-bottom: 100px;
+
   }
 }
 

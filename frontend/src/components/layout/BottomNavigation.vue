@@ -79,7 +79,7 @@ import { Newspaper, Calendar, Wallet, QrCode } from 'lucide-vue-next'
 }
 
 .nav-item.active {
-  color: #4A90E2;
+  color: #2563eb;
 }
 
 .nav-item.active::before {
@@ -90,12 +90,12 @@ import { Newspaper, Calendar, Wallet, QrCode } from 'lucide-vue-next'
   transform: translateX(-50%);
   width: 24px;
   height: 3px;
-  background: #4A90E2;
+  background: #2563eb;
   border-radius: 3px;
 }
 
 .nav-item.active .nav-icon {
-  color: #4A90E2;       /* 👈 mismo azul del cuadrito */
+  color: #2563eb;       /* 👈 mismo azul del cuadrito */
   transform: translateY(-2px);
 }
 
