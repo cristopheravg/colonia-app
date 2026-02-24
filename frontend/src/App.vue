@@ -1,9 +1,14 @@
 <template>
   <router-view />
+  <NotificationTest />  <!-- 👈 Agrega esto -->
 </template>
 
 <script setup>
 import { onMounted } from 'vue'
+import NotificationTest from '@/components/NotificationTest.vue';  // 👈 Importa esto
+
+
+
 
 onMounted(() => {
   console.log('Colonia App iniciada')
