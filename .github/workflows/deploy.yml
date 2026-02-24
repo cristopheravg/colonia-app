@@ -53,6 +53,27 @@ jobs:
             echo "📦 Instalando dependencias completas..."
             npm ci
             
+            # ===========================================
+            # GITHUB SECRETS
+            # ===========================================
+
+
+
+            echo "🔨 Ejecutando build con variables de entorno..."
+            # Pasar las variables de entorno desde GitHub Secrets
+            export VITE_FIREBASE_API_KEY="${{ secrets.VITE_FIREBASE_API_KEY }}"
+            export VITE_FIREBASE_AUTH_DOMAIN="${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}"
+            export VITE_FIREBASE_PROJECT_ID="${{ secrets.VITE_FIREBASE_PROJECT_ID }}"
+            export VITE_FIREBASE_STORAGE_BUCKET="${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}"
+            export VITE_FIREBASE_MESSAGING_SENDER_ID="${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}"
+            export VITE_FIREBASE_APP_ID="${{ secrets.VITE_FIREBASE_APP_ID }}"
+            export VITE_FIREBASE_MEASUREMENT_ID="${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}"
+            export VITE_FIREBASE_VAPID_KEY="${{ secrets.VITE_FIREBASE_VAPID_KEY }}"
+
+
+            
+
+
             echo "🔨 Ejecutando build..."
             npm run build
             
