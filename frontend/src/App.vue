@@ -8,6 +8,7 @@ import { onMounted } from 'vue'
 onMounted(() => {
   console.log('Colonia App iniciada')
 })
+
 </script>
 
 <style>
@@ -22,3 +23,4 @@ body {
   background: #f5f5f5;
 }
 </style>
+

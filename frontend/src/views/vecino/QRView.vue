@@ -1,24 +1,51 @@
 <template>
   <AppLayout>
-    <div class="qr-view">
-      <h1>Código QR</h1>
-      <p class="subtitle">Mesa Directiva Miguel Avila / Doroteo Arango</p>
+    <section class="qr-view">
+      <!-- Header uniforme con la vista de eventos -->
+      <div class="view-header" :class="{ 'header-scrolled': isScrolled }">
+        <div class="header-content">
+          <div class="header-left">
+            <h1 class="page-title">Mi QR</h1>
+            <span class="user-role-badge">{{ userRoleText }}</span>
+          </div>
+          
+          <!-- Acción de cerrar sesión estilo app -->
+          <button class="logout-btn" @click="logout">
+            <span class="btn-icon">🚪</span>
+            <span class="btn-text">Salir</span>
+          </button>
+        </div>
 
-      <!-- Tarjeta del QR -->
-      <div class="qr-card-simple">
-        <div class="qr-main">
-          <!-- QR Code -->
-          <div class="qr-code-wrapper">
-            <div v-if="verificationCode" class="qr-code">
+        <!-- Subtítulo estilo app -->
+        <p class="header-subtitle">Mesa Directiva Miguel Avila / Doroteo Arango</p>
+      </div>
+
+      <!-- Contenido principal -->
+      <div class="qr-content">
+        <!-- Tarjeta principal del QR -->
+        <div class="qr-card">
+          <!-- Info del usuario destacada -->
+          <div class="user-profile-header">
+            <div class="user-avatar-large">{{ userInitials }}</div>
+            <div class="user-info">
+              <h2>{{ userFullName }}</h2>
+              <span class="user-badge">{{ userRoleText }}</span>
+            </div>
+          </div>
+
+          <!-- QR Code con efecto de tarjeta -->
+          <div class="qr-code-container">
+            <div v-if="verificationCode" class="qr-code-wrapper">
               <qrcode-vue
                 v-if="qrData"
                 :value="qrData"
-                :size="200"       
+                :size="220"
                 level="H"
                 :scale="9"
                 :bg-color="'#ffffff'"
-                :fg-color="'#585858'"
+                :fg-color="'#2563eb'"
               />
+              <div class="qr-overlay-effect"></div>
             </div>
             <div v-else class="qr-placeholder">
               <div class="spinner"></div>
@@ -26,35 +53,46 @@
             </div>
           </div>
 
-          <!-- Información mínima del usuario -->
-          <div class="user-info-minimal">
-            <div class="user-avatar-mini">{{ userInitials }}</div>
-            <div class="user-details-mini">
-              <h3>{{ userFullName }}</h3>
-              <p>{{ userRoleText }}</p>
+          <!-- Código de verificación con diseño premium -->
+          <div class="verification-section">
+            <div class="verification-label">
+              <span class="label-icon">🔐</span>
+              <span>Código de verificación</span>
             </div>
+            
+            <div class="code-display">
+              <span class="code-text">{{ verificationCode }}</span>
+              <button class="copy-btn" @click="copyCode" title="Copiar código">
+                📋
+              </button>
+            </div>
+
+            <!-- Timer con diseño circular -->
+            <div class="timer-container">
+              <div class="timer-circle" :style="{ transform: `rotate(${(otpTimeLeft / 60) * 360}deg)` }"></div>
+              <span class="timer-text">{{ otpTimeLeft }}s</span>
+            </div>
+            <p class="timer-label">El código se actualiza automáticamente</p>
+          </div>
+
+          <!-- Nota informativa -->
+          <div class="info-note">
+            <span class="info-icon">📍</span>
+            <p>Presenta este código para identificarte en eventos y pagos</p>
           </div>
         </div>
 
-        <!-- Código de verificación + contador -->
-        <div class="verification-minimal">
-          <h4>Código:</h4>
-          <div class="code-simple">{{ verificationCode }}</div>
-          <p class="otp-countdown">Expira en: {{ otpTimeLeft }}s</p>
+        <!-- Tips de uso -->
+        <div class="tips-section">
+          <h4>💡 Tips de uso</h4>
+          <ul>
+            <li>El código se renueva cada 60 segundos</li>
+            <li>Puedes escanear el QR o leer el código manual</li>
+            <li>Muestra este código al personal autorizado</li>
+          </ul>
         </div>
       </div>
-
-      <!-- Nota simple -->
-      <div class="simple-note">
-        <p>📍 Presenta este código para identificarte en eventos y pagos</p>
-      </div>
-
-      <div>
-        <!-- Tu contenido de la vista -->
-        <a href="#" @click.prevent="logout">Cerrar sesión</a>
-      </div>
-
-    </div>
+    </section>
   </AppLayout>
 </template>
 
@@ -70,7 +108,16 @@ import { authService } from '../../services/authService.js'
 const router = useRouter()
 const authStore = useAuthStore()
 
-// Nombre completo del usuario (nombre + apellidos)
+// Estados
+const isScrolled = ref(false)
+const verificationCode = ref('')
+const qrData = ref('')
+const otpTimeLeft = ref(60)
+const totalOtpTime = 60
+let countdownInterval = null
+let intervalId = null
+
+// Computed
 const userFullName = computed(() => {
   const user = authStore.user
   if (!user) return 'Usuario'
@@ -78,8 +125,8 @@ const userFullName = computed(() => {
 })
 
 const userRole = computed(() => authStore.user?.rol || 'vecino')
+const userRoleText = computed(() => userRole.value === 'admin' ? 'Administrador' : 'Vecino')
 
-// Iniciales del usuario (nombre + apellidos)
 const userInitials = computed(() => {
   const name = userFullName.value
   return name
@@ -90,15 +137,13 @@ const userInitials = computed(() => {
     .substring(0, 2)
 })
 
-const userRoleText = computed(() => userRole.value === 'admin' ? 'Administrador' : 'Vecino')
+// Scroll handler para efecto del header
+const handleScroll = (e) => {
+  const container = e.target
+  isScrolled.value = container.scrollTop > 20
+}
 
-// QR y OTP
-const verificationCode = ref('')
-const qrData = ref('')  
-const otpTimeLeft = ref(60)
-const totalOtpTime = 60
-let countdownInterval = null
-
+// Funciones QR/OTP
 const startOtpCountdown = () => {
   otpTimeLeft.value = totalOtpTime
   if (countdownInterval) clearInterval(countdownInterval)
@@ -120,9 +165,7 @@ const generateOTP = async () => {
     }
     const res = await axios.post('/api/otp/generar', { userId })
     verificationCode.value = res.data.otp
-
-    // Concatenar OTP + ID y codificar en Base64
-    qrData.value = btoa(`${verificationCode.value}-${userId}`) 
+    qrData.value = btoa(`${verificationCode.value}-${userId}`)
     startOtpCountdown()
   } catch (err) {
     console.error('Error generando OTP:', err)
@@ -130,15 +173,15 @@ const generateOTP = async () => {
   }
 }
 
-let intervalId = null
-onMounted(() => {
-  generateOTP()
-  intervalId = setInterval(generateOTP, 60 * 1000)
-})
-onUnmounted(() => {
-  if (intervalId) clearInterval(intervalId)
-  if (countdownInterval) clearInterval(countdownInterval)
-})
+const copyCode = async () => {
+  try {
+    await navigator.clipboard.writeText(verificationCode.value)
+    // Feedback visual (podrías agregar un toast)
+    alert('Código copiado al portapapeles')
+  } catch (err) {
+    console.error('Error copiando código:', err)
+  }
+}
 
 // Logout
 const logout = async () => {
@@ -152,43 +195,453 @@ const logout = async () => {
     alert('No se pudo cerrar sesión, intenta de nuevo')
   }
 }
+
+// Lifecycle
+onMounted(() => {
+  generateOTP()
+  intervalId = setInterval(generateOTP, 60 * 1000)
+})
+
+onUnmounted(() => {
+  if (intervalId) clearInterval(intervalId)
+  if (countdownInterval) clearInterval(countdownInterval)
+})
 </script>
 
-
 <style scoped>
-/* Mantengo tu CSS tal cual lo tenías */
-.qr-view { min-height: calc(100vh - 180px); display: flex; flex-direction: column; justify-content: center; padding: 20px; max-width: 500px; margin: 0 auto; text-align: center; }
-h1 { color: #333; margin-bottom: 8px; font-size: 1.5rem; }
-.subtitle { color: #666; margin-bottom: 30px; font-size: 0.95rem; }
-.qr-card-simple { background: white; border-radius: 20px; padding: 30px; margin-bottom: 25px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); border: 1px solid #e9ecef; }
-.qr-main { display: flex; flex-direction: column; align-items: center; gap: 25px; margin-bottom: 25px; }
-.qr-code-wrapper { background: #f8f9fa; padding: 25px; border-radius: 15px; border: 2px solid #dee2e6; }
-.qr-code { display: flex; justify-content: center; align-items: center; min-height: 280px; }
-.qr-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 280px; color: #666; }
-.qr-placeholder .spinner { width: 40px; height: 40px; border: 3px solid #f3f3f3; border-top: 3px solid #4A90E2; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-.user-info-minimal { display: flex; align-items: center; gap: 15px; background: #f8f9fa; padding: 15px 20px; border-radius: 12px; width: 100%; max-width: 300px; }
-.user-avatar-mini { width: 50px; height: 50px; background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: bold; flex-shrink: 0; }
-.user-details-mini { text-align: left; flex: 1; }
-.user-details-mini h3 { margin: 0 0 5px 0; color: #333; font-size: 1.1rem; }
-.user-details-mini p { margin: 0; color: #666; font-size: 0.9rem; }
-.verification-minimal { background: #f0f7ff; border-radius: 12px; padding: 20px; border: 2px solid #4A90E2; }
-.verification-minimal h4 { margin: 0 0 12px 0; color: #333; font-size: 1rem; text-align: center; }
-.code-simple { font-family: 'Courier New', monospace; font-size: 2.2rem; font-weight: bold; letter-spacing: 3px; color: #4A90E2; padding: 12px; background: white; border-radius: 8px; border: 1px dashed #4A90E2; text-align: center; }
-.otp-countdown { margin-top: 8px; font-size: 1rem; color: #ff4d4f; font-weight: bold; text-align: center; }
-.simple-note { background: #f8f9fa; border-radius: 12px; padding: 15px 20px; color: #666; font-size: 0.95rem; line-height: 1.5; }
-.simple-note p { margin: 0; }
-@media (max-width: 768px) { .qr-view { padding: 15px; max-width: 100%; } .qr-card-simple { padding: 20px; } .qr-code-wrapper { padding: 15px; } .qr-code { min-height: 250px; } .user-info-minimal { flex-direction: column; text-align: center; gap: 12px; } .user-details-mini { text-align: center; } .code-simple { font-size: 1.8rem; letter-spacing: 2px; padding: 10px; } h1 { font-size: 1.3rem; } .subtitle { font-size: 0.9rem; } }
-@media (max-width: 480px) { .qr-code { min-height: 220px; } .code-simple { font-size: 1.6rem; letter-spacing: 1px; } }
-
-.qr-code vue-qrcode {
-  width: 100% !important;      /* ocupar todo el ancho del contenedor */
-  height: 100% !important;     /* ocupar todo el alto del contenedor */
-  max-width: 280px;             /* mantener tu tamaño original */
-  max-height: 280px;
-  display: block;
-  margin: 0 auto;
+/* ===== ESTILOS UNIFORMES CON LA VISTA DE EVENTOS ===== */
+.qr-view {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  position: relative;
+  animation: pageSlideIn 0.3s ease-out;
 }
 
+@keyframes pageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
+/* ===== HEADER UNIFORME ===== */
+.view-header {
+  background: white;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 12px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+
+.view-header.header-scrolled {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+
+.user-role-badge {
+  background: #2563eb;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.header-subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  text-align: left;
+}
+
+/* Botón de logout estilo app */
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 30px;
+  color: #475569;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:active {
+  background: #e2e8f0;
+  transform: scale(0.95);
+}
+
+.btn-icon {
+  font-size: 1rem;
+}
+
+/* ===== CONTENIDO PRINCIPAL ===== */
+.qr-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Tarjeta principal */
+.qr-card {
+  background: white;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
+  margin-bottom: 20px;
+}
+
+/* Perfil de usuario */
+.user-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.user-avatar-large {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+}
+
+.user-info h2 {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.user-badge {
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 20px;
+}
+
+/* QR Code */
+.qr-code-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.qr-code-wrapper {
+  background: white;
+  padding: 16px;
+  border-radius: 24px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+  position: relative;
+  overflow: hidden;
+}
+
+.qr-overlay-effect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+  pointer-events: none;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.qr-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  color: #64748b;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f1f5f9;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Sección de verificación */
+.verification-section {
+  background: #f8fafc;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.verification-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+
+.label-icon {
+  font-size: 1rem;
+}
+
+.code-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border-radius: 16px;
+  padding: 4px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 16px;
+}
+
+.code-text {
+  flex: 1;
+  font-family: 'Courier New', monospace;
+  font-size: 1.8rem;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: #2563eb;
+  padding: 12px;
+  text-align: center;
+}
+
+.copy-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.copy-btn:active {
+  background: #e2e8f0;
+  transform: scale(0.95);
+}
+
+/* Timer circular */
+.timer-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 8px;
+}
+
+.timer-circle {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid #e2e8f0;
+  border-top-color: #2563eb;
+  animation: timerRotate 60s linear infinite;
+}
+
+@keyframes timerRotate {
+  to { transform: rotate(360deg); }
+}
+
+.timer-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2563eb;
+  position: relative;
+  z-index: 1;
+}
+
+.timer-label {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #64748b;
+  text-align: center;
+}
+
+/* Nota informativa */
+.info-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #f1f5f9;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.info-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.info-note p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+/* Tips section */
+.tips-section {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid #f1f5f9;
+}
+
+.tips-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.tips-section ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tips-section li {
+  padding: 8px 0;
+  color: #475569;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.tips-section li:last-child {
+  border-bottom: none;
+}
+
+.tips-section li::before {
+  content: "•";
+  color: #2563eb;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .qr-content {
+    padding: 16px;
+  }
+
+  .qr-card {
+    padding: 20px;
+  }
+
+  .user-profile-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .user-info {
+    text-align: center;
+  }
+
+  .code-text {
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+  }
+}
+
+@media (min-width: 768px) {
+  .qr-view {
+    max-width: 600px;
+    margin: 0 auto;
+    border-left: 1px solid #f1f5f9;
+    border-right: 1px solid #f1f5f9;
+    background: white;
+  }
+
+  .qr-content {
+    background: #f8fafc;
+  }
+}
+
+/* Ajustes para el QR */
+:deep(canvas) {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 220px;
+  max-height: 220px;
+  display: block;
+  margin: 0 auto;
+  border-radius: 12px;
+}
 </style>
