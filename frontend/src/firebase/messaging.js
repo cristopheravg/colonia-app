@@ -11,9 +11,12 @@ export const requestNotificationPermission = async () => {
     if (permission === 'granted') {
       console.log('Permiso concedido, obteniendo token...');
       
-      const token = await getToken(messaging, {
-        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
-      });
+    const registration = await navigator.serviceWorker.ready;
+
+    const token = await getToken(messaging, {
+      vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+      serviceWorkerRegistration: registration
+    });
       
       console.log('✅ Token FCM obtenido:', token);
       return { success: true, token };
