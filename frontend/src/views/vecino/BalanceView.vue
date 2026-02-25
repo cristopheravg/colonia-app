@@ -8,6 +8,62 @@
         </div>
       </div>
 
+      <!-- BANNER DE NOTIFICACIONES - Aparece solo si es necesario -->
+      <transition name="banner-slide">
+        <div v-if="showNotificationBanner" class="notification-banner">
+          <div class="banner-content">
+            <div class="banner-icon">🔔</div>
+            <div class="banner-text">
+              <strong>¡Activa las notificaciones!</strong>
+              <p>Recibe alertas de nuevos eventos y recordatorios de pagos</p>
+            </div>
+            <div class="banner-actions">
+              <button 
+                class="btn-primary"
+                @click="handleNotificationRequest"
+                :disabled="notificationLoading"
+              >
+                <span v-if="notificationLoading" class="spinner-small"></span>
+                <span v-else>Activar ahora</span>
+              </button>
+              <button 
+                class="btn-secondary"
+                @click="dismissNotificationBanner"
+              >
+                Ahora no
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- BANNER DE BLOQUEO - Si el usuario bloqueó las notificaciones -->
+      <transition name="banner-slide">
+        <div v-if="showBlockedBanner" class="notification-banner blocked">
+          <div class="banner-content">
+            <div class="banner-icon">⚠️</div>
+            <div class="banner-text">
+              <strong>Notificaciones bloqueadas</strong>
+              <p>Para recibir alertas, habilítalas en la configuración del navegador</p>
+            </div>
+            <div class="banner-actions">
+              <button 
+                class="btn-primary"
+                @click="openNotificationSettings"
+              >
+                Configurar
+              </button>
+              <button 
+                class="btn-secondary"
+                @click="dismissNotificationBanner"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
       <!-- Botón de refresh debajo del header -->
       <div class="refresh-section">
         <button class="refresh-btn" @click="refreshBalance" :disabled="loading">
@@ -119,7 +175,7 @@
                     </div>
                   </div>
 
-                  <!-- Chevron indicador (opcional) -->
+                  <!-- Chevron indicador -->
                   <div class="card-chevron">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                       <path d="M9 18L15 12L9 6" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
@@ -150,11 +206,12 @@ import { ref, onMounted, computed, onUnmounted } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { balanceService } from '@/services/balanceService'
 import { useAuthStore } from '@/stores/auth'
+import { requestNotificationPermission } from '@/services/messaging'
 
 // Stores
 const authStore = useAuthStore()
 
-// Estados
+// Estados existentes
 const loading = ref(true)
 const dataLoaded = ref(false)
 const isScrolled = ref(false)
@@ -165,7 +222,24 @@ const balance = ref({
 })
 const lastUpdateTime = ref(new Date())
 
-// Scroll handler para efecto del header
+// ===== NUEVOS ESTADOS PARA NOTIFICACIONES =====
+const notificationPermission = ref('default')
+const notificationLoading = ref(false)
+const notificationBannerDismissed = ref(false)
+
+// ===== COMPUTADOS PARA NOTIFICACIONES =====
+const showNotificationBanner = computed(() => {
+  return !notificationBannerDismissed.value && 
+         notificationPermission.value === 'default' &&
+         !notificationLoading.value
+})
+
+const showBlockedBanner = computed(() => {
+  return !notificationBannerDismissed.value && 
+         notificationPermission.value === 'denied'
+})
+
+// Scroll handler
 const handleScroll = () => {
   const container = scrollContainer.value
   if (!container) return
@@ -194,7 +268,7 @@ const detalleOrdenado = computed(() => {
   })
 })
 
-// última actualización - se actualiza con cada refresh
+// última actualización
 const lastUpdate = computed(() => {
   return lastUpdateTime.value.toLocaleTimeString('es-MX', {
     hour: '2-digit',
@@ -254,16 +328,76 @@ const getStatusText = (item) => {
   return 'Pendiente'
 }
 
-// cargar datos reales - con reintentos
+// ===== FUNCIONES DE NOTIFICACIONES =====
+const checkNotificationStatus = () => {
+  if (!('Notification' in window)) {
+    notificationPermission.value = 'denied'
+    return
+  }
+  notificationPermission.value = Notification.permission
+}
+
+const handleNotificationRequest = async () => {
+  notificationLoading.value = true
+  try {
+    const result = await requestNotificationPermission()
+    if (result.success) {
+      notificationPermission.value = 'granted'
+      notificationBannerDismissed.value = false
+      
+      // Enviar token al backend
+      await sendTokenToBackend(result.token)
+    } else {
+      notificationPermission.value = Notification.permission
+    }
+  } catch (error) {
+    console.error('Error:', error)
+  } finally {
+    notificationLoading.value = false
+  }
+}
+
+const sendTokenToBackend = async (token) => {
+  try {
+    const userToken = localStorage.getItem('colonia_token')
+    if (!userToken) return
+
+    await fetch('/api/notificaciones/registrar-token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${userToken}`
+      },
+      body: JSON.stringify({ token })
+    })
+  } catch (error) {
+    console.error('Error enviando token:', error)
+  }
+}
+
+const dismissNotificationBanner = () => {
+  notificationBannerDismissed.value = true
+}
+
+const openNotificationSettings = () => {
+  if (navigator.userAgent.includes('Chrome')) {
+    window.open('chrome://settings/content/notifications')
+  } else if (navigator.userAgent.includes('Firefox')) {
+    window.open('about:preferences#privacy')
+  } else {
+    alert('Para activar las notificaciones, ve a la configuración de tu navegador')
+  }
+  notificationBannerDismissed.value = true
+}
+
+// cargar datos reales
 const loadBalanceData = async (retryCount = 0) => {
-  // Si no hay usuario, esperar y reintentar
   if (!authStore.user?.id) {
-    if (retryCount < 10) { // Máximo 10 reintentos (5 segundos)
+    if (retryCount < 10) {
       console.log(`Esperando autenticación... intento ${retryCount + 1}/10`)
       setTimeout(() => loadBalanceData(retryCount + 1), 500)
       return
     } else {
-      // Si después de 5 segundos no hay usuario, mostrar error
       loading.value = false
       dataLoaded.value = true
       return
@@ -288,19 +422,22 @@ const loadBalanceData = async (retryCount = 0) => {
   }
 }
 
-// refresh - actualiza datos y hora
+// refresh
 const refreshBalance = () => {
   loadBalanceData()
 }
 
-// init - cargar inmediatamente con reintentos
+// init
 onMounted(() => {
   document.body.classList.add('page-enter')
   setTimeout(() => {
     document.body.classList.remove('page-enter')
   }, 300)
   
-  // Iniciar carga con reintentos
+  // Verificar estado de notificaciones al cargar la vista
+  checkNotificationStatus()
+  
+  // Iniciar carga de datos
   loadBalanceData()
 })
 
@@ -310,7 +447,11 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* ===== ESTILOS UNIFORMES CON LAS OTRAS VISTAS ===== */
+/* ===== TRANSICIONES DE PÁGINA ===== */
+.page-enter {
+  opacity: 0;
+}
+
 .balance-view {
   height: 100vh;
   display: flex;
@@ -331,7 +472,7 @@ onUnmounted(() => {
   }
 }
 
-/* ===== HEADER UNIFORME Y LIMPIO ===== */
+/* ===== HEADER UNIFORME ===== */
 .view-header {
   background: white;
   border-bottom: 1px solid #f1f5f9;
@@ -362,7 +503,133 @@ onUnmounted(() => {
   text-align: center;
 }
 
-/* ===== SECCIÓN DE REFRESH DEBAJO DEL HEADER ===== */
+/* ===== BANNER DE NOTIFICACIONES ===== */
+.notification-banner {
+  background: #f0f9ff;
+  border-bottom: 3px solid #2563eb;
+  padding: 12px 20px;
+  animation: slideDown 0.3s ease-out;
+  position: relative;
+  z-index: 20;
+}
+
+.notification-banner.blocked {
+  background: #fef2f2;
+  border-bottom-color: #dc2626;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.banner-slide-enter-active,
+.banner-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.banner-slide-enter-from,
+.banner-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-100%);
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 600px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+
+.banner-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.banner-text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.banner-text strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.banner-text p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.banner-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-primary:active {
+  background: #1d4ed8;
+  transform: scale(0.95);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:active {
+  background: #f1f5f9;
+}
+
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ===== SECCIÓN DE REFRESH ===== */
 .refresh-section {
   display: flex;
   justify-content: space-between;
@@ -372,7 +639,6 @@ onUnmounted(() => {
   border-bottom: 1px solid #f1f5f9;
 }
 
-/* Botón de refresh */
 .refresh-btn {
   display: flex;
   align-items: center;
@@ -424,7 +690,7 @@ onUnmounted(() => {
   width: 100%;
 }
 
-/* ===== TARJETAS DE RESUMEN - UNA SOBRE OTRA ===== */
+/* ===== TARJETAS DE RESUMEN ===== */
 .summary-section {
   display: flex;
   flex-direction: column;
@@ -543,7 +809,6 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-/* Cards de conceptos */
 .concept-card {
   background: white;
   border-radius: 20px;
@@ -841,10 +1106,6 @@ onUnmounted(() => {
   position: absolute;
 }
 
-.page-enter {
-  opacity: 0;
-}
-
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .balance-container {
@@ -900,5 +1161,21 @@ onUnmounted(() => {
 /* Ajustes tipográficos */
 .amount, .card-amount, .amount-value {
   font-feature-settings: "tnum";
+}
+
+@media (max-width: 480px) {
+  .banner-content {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .banner-actions {
+    justify-content: center;
+  }
+
+  .btn-primary, .btn-secondary {
+    flex: 1;
+  }
 }
 </style>

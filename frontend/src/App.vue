@@ -1,6 +1,6 @@
 <template>
   <router-view />
-  <NotificationTest />  <!-- 👈 Agrega esto -->
+  <!--<NotificationTest />-->  <!-- 👈 Agrega esto -->
 </template>
 
 <script setup>
