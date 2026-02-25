@@ -206,7 +206,7 @@ import { ref, onMounted, computed, onUnmounted } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { balanceService } from '@/services/balanceService'
 import { useAuthStore } from '@/stores/auth'
-import { requestNotificationPermission } from '@/services/messaging'
+import { requestNotificationPermission } from '@/firebase/messaging'
 
 // Stores
 const authStore = useAuthStore()
