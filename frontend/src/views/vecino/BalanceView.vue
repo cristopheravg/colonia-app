@@ -337,18 +337,36 @@ const checkNotificationStatus = () => {
   notificationPermission.value = Notification.permission
 }
 
+
+
 const handleNotificationRequest = async () => {
   notificationLoading.value = true
   try {
+    console.log('🔄 Iniciando proceso de notificaciones...');
+    
     const result = await requestNotificationPermission()
+    
     if (result.success) {
+      console.log('✅ Permiso y token obtenidos');
       notificationPermission.value = 'granted'
       notificationBannerDismissed.value = false
       
-      // Enviar token al backend
+      // En móvil, dar tiempo extra antes de enviar al backend
+      if (/Android/i.test(navigator.userAgent)) {
+        console.log('📱 Esperando 2 segundos para móvil...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      
+      // Enviar al backend
       await sendTokenToBackend(result.token)
     } else {
+      console.log('❌ Error:', result.error);
       notificationPermission.value = Notification.permission
+      
+      // Si es móvil y denegó, mostrar mensaje específico
+      if (/Android/i.test(navigator.userAgent) && Notification.permission === 'denied') {
+        alert('📱 En Android, debes activar las notificaciones en: Configuración > Aplicaciones > Chrome > Notificaciones');
+      }
     }
   } catch (error) {
     console.error('Error:', error)
@@ -357,40 +375,48 @@ const handleNotificationRequest = async () => {
   }
 }
 
-
-
-
 const sendTokenToBackend = async (token) => {
   try {
+    console.log('📤 Enviando token al backend...');
+    
     const userToken = localStorage.getItem('colonia_token')
-    if (!userToken) return
+    if (!userToken) {
+      console.log('❌ No hay token de autenticación');
+      return
+    }
 
-    const response = await fetch('/api/notificaciones/registrar-token', {
+    // Usar URL absoluta para móvil
+    const baseUrl = window.location.origin
+    const url = `${baseUrl}/api/notificaciones/registrar-token`
+    
+    console.log('📡 URL:', url);
+    console.log('🔑 Token:', token.substring(0, 30) + '...');
+    
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${userToken}`
       },
-      body: JSON.stringify({ 
-        token: token
-        // El backend ya detectará el user-agent automáticamente
-      })
+      body: JSON.stringify({ token }),
+      credentials: 'include'
     })
     
+    console.log('📡 Status:', response.status);
+    
     const data = await response.json()
+    console.log('📦 Respuesta:', data);
     
     if (data.success) {
-      console.log('✅ Token guardado en backend:', data.message)
+      console.log('✅ Token guardado en backend')
     } else {
-      console.log('⚠️ Error guardando token:', data.error)
+      console.log('⚠️ Error:', data.error)
     }
     
   } catch (error) {
-    console.log('Nota: Error enviando token al backend:', error.message)
+    console.log('❌ Error fetch:', error.message)
   }
 }
-
-
 
 
 

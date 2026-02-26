@@ -193,4 +193,39 @@ function obtenerNombreDispositivo(userAgent) {
   return 'Dispositivo Web';
 }
 
+
+// routes/notificaciones.js - Agrega este endpoint especial para móvil
+
+// Endpoint para móvil con más logs y manejo especial
+router.post('/registrar-token-movil', async (req, res) => {
+  console.log('📱 PETICIÓN MÓVIL RECIBIDA ==========');
+  console.log('Body:', req.body);
+  console.log('Headers:', req.headers);
+  console.log('IP:', req.ip);
+  
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Token requerido' 
+      });
+    }
+    
+    // Buscar usuario por algún método (quizás por token de auth)
+    // Por ahora solo respondemos OK para prueba
+    res.json({ 
+      success: true, 
+      message: 'Token recibido en móvil',
+      token_recibido: token.substring(0, 20) + '...'
+    });
+    
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 export default router;
