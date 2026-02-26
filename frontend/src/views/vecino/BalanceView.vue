@@ -357,23 +357,45 @@ const handleNotificationRequest = async () => {
   }
 }
 
+
+
+
 const sendTokenToBackend = async (token) => {
   try {
     const userToken = localStorage.getItem('colonia_token')
     if (!userToken) return
 
-    await fetch('/api/notificaciones/registrar-token', {
+    const response = await fetch('/api/notificaciones/registrar-token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${userToken}`
+        'Authorization': `Bearer ${userToken}`
       },
-      body: JSON.stringify({ token })
+      body: JSON.stringify({ 
+        token: token
+        // El backend ya detectará el user-agent automáticamente
+      })
     })
+    
+    const data = await response.json()
+    
+    if (data.success) {
+      console.log('✅ Token guardado en backend:', data.message)
+    } else {
+      console.log('⚠️ Error guardando token:', data.error)
+    }
+    
   } catch (error) {
-    console.error('Error enviando token:', error)
+    console.log('Nota: Error enviando token al backend:', error.message)
   }
 }
+
+
+
+
+
+
+
 
 const dismissNotificationBanner = () => {
   notificationBannerDismissed.value = true

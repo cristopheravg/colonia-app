@@ -14,6 +14,8 @@ import userRoutes from './routes/usersRoutes.js';
 import conceptsRoutes from './routes/conceptsRoutes.js'
 import addPaymentsRoutes from './routes/addPaymentRoutes.js'
 import scannerQRRoutes from './routes/scanQRRoutes.js'
+import notifications from './routes/notifications.js'
+
 
 dotenv.config();
 
@@ -138,6 +140,7 @@ app.use('/api/otp', otpRoutes);
 app.use('/api/conceptos', conceptsRoutes);
 app.use('/api/pagos', addPaymentsRoutes);
 app.use('/api/asistencias', scannerQRRoutes);
+app.use('/api/notificaciones',notifications);
 
 // 404 para rutas API no encontradas
 app.use('/api/*', (req, res) => {
