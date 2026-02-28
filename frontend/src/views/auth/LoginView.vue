@@ -10,7 +10,7 @@
           <!-- Icono/Logo -->
           <div class="card-icon">
             <img 
-              src="images/splash.png" 
+              src="splash.png" 
               alt="Logo App" 
               class="logo-img"
             />
