@@ -696,7 +696,7 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-.modal-overlay {
+/*.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -708,9 +708,18 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  /* Importante: padding inferior extra para la navbar */
-  padding-bottom: calc(20px + 70px); /* 70px es el alto aproximado de la navbar */
+  padding: 20px; 
+  padding-bottom: calc(20px + 70px); 
+}*/
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-container {
