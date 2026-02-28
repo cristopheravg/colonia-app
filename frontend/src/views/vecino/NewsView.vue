@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <section class="news-view">
-      <!-- Header uniforme -->
+      <!-- Header uniforme (sin cambios) -->
       <div class="view-header" :class="{ 'header-scrolled': isScrolled }">
         <div class="header-content">
           <div class="header-left">
@@ -16,7 +16,7 @@
           </button>
         </div>
 
-        <!-- Filtros rápidos -->
+        <!-- Filtros rápidos (sin cambios) -->
         <transition name="slide-fade">
           <div v-if="showFilters" class="quick-filters">
             <button 
@@ -38,13 +38,13 @@
         ref="scrollContainer"
         @scroll="handleScroll"
       >
-        <!-- Loader -->
+        <!-- Loader (sin cambios) -->
         <div v-if="loading" class="infinite-loader">
           <div class="spinner"></div>
           <span>Cargando noticias...</span>
         </div>
 
-        <!-- Lista con transiciones -->
+        <!-- Lista con transiciones - MODIFICADO: usar router-link en lugar de @click -->
         <transition-group 
           v-else
           name="page-transition" 
@@ -52,12 +52,12 @@
           class="news-list"
           appear
         >
-          <article
+          <router-link
+            :to="`/noticias/${news.id}`"
             class="news-card"
             v-for="(news, index) in filteredNews"
             :key="news.id"
             :style="{ transitionDelay: `${index * 0.03}s` }"
-            @click="openNewsDetails(news)"
           >
             <div class="card-inner">
               <!-- Icono de categoría/importancia -->
@@ -71,7 +71,6 @@
                   <span class="news-badge" v-if="news.destacada">🌟 Destacada</span>
                 </div>
                 
-                <!-- CORREGIDO: Usar v-html para respetar los <br> -->
                 <div class="news-description" v-html="truncateContent(news.contenido)"></div>
 
                 <div class="news-meta">
@@ -79,11 +78,6 @@
                     <span class="meta-icon">📅</span>
                     <span class="meta-text">{{ formatRelativeDate(news.fecha_publicacion) }}</span>
                   </div>
-                  
-                  <!--<div class="meta-item">
-                    <span class="meta-icon">👁️</span>
-                    <span class="meta-text">{{ news.visitas || 0 }} vistas</span>
-                  </div>-->
                 </div>
               </div>
 
@@ -94,10 +88,10 @@
                 </svg>
               </div>
             </div>
-          </article>
+          </router-link>
         </transition-group>
 
-        <!-- Empty state mejorado -->
+        <!-- Empty state mejorado (sin cambios) -->
         <div v-if="!loading && filteredNews.length === 0" class="empty-state">
           <div class="empty-icon">📰</div>
           <h3>No hay noticias disponibles</h3>
@@ -108,36 +102,8 @@
         </div>
       </div>
 
-      <!-- Modal centrado para noticia completa (con padding para navbar) -->
-      
-        <transition name="modal-fade">
-          <div v-if="selectedNews" class="modal-overlay" @click.self="closeNewsDetails">
-            <div class="modal-container">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <h2>{{ selectedNews.titulo }}</h2>
-                  <button class="modal-close" @click="closeNewsDetails">✕</button>
-                </div>
-
-                <div class="modal-body">
-                  <!-- Metadata -->
-                  <div class="modal-meta">
-                    <span class="meta-date">
-                      📅 {{ formatDate(selectedNews.fecha_publicacion) }}
-                    </span>
-                    <span class="meta-views" v-if="selectedNews.visitas">
-                      👁️ {{ selectedNews.visitas }} vistas
-                    </span>
-                    <span class="meta-badge" v-if="selectedNews.destacada">🌟 Destacada</span>
-                  </div>
-
-                  <!-- Contenido completo con v-html -->
-                  <div class="modal-description" v-html="selectedNews.contenido"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </transition>
+      <!-- MODIFICADO: Eliminar el modal completamente -->
+      <!-- El modal ha sido eliminado -->
       
     </section>
   </AppLayout>
@@ -145,6 +111,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router' // Añadido import de router
 import AppLayout from '@/components/layout/AppLayout.vue'
 
 // Estados
@@ -152,18 +119,21 @@ const newsList = ref([])
 const loading = ref(false)
 const showFilters = ref(false)
 const activeFilter = ref('all')
-const selectedNews = ref(null)
+// ELIMINADO: selectedNews ya no es necesario
 const isScrolled = ref(false)
 const scrollContainer = ref(null)
 
-// Filtros
+// Añadido router (por si necesitas navegación programática)
+const router = useRouter()
+
+// Filtros (sin cambios)
 const filters = [
   { label: 'Todas', value: 'all' },
   { label: 'Destacadas', value: 'featured' },
   { label: 'Recientes', value: 'recent' }
 ]
 
-// Computed - noticias filtradas
+// Computed - noticias filtradas (sin cambios)
 const filteredNews = computed(() => {
   if (!newsList.value.length) return []
   
@@ -174,30 +144,27 @@ const filteredNews = computed(() => {
       filtered = filtered.filter(news => news.destacada)
       break
     case 'recent':
-      // Últimos 7 días
       const weekAgo = new Date()
       weekAgo.setDate(weekAgo.getDate() - 7)
       filtered = filtered.filter(news => new Date(news.fecha_publicacion) >= weekAgo)
       break
     default:
-      // Todas
       break
   }
   
-  // Ordenar por fecha (más reciente primero)
   return filtered.sort((a, b) => 
     new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion)
   )
 })
 
-// Scroll handler
+// Scroll handler (sin cambios)
 const handleScroll = () => {
   const container = scrollContainer.value
   if (!container) return
   isScrolled.value = container.scrollTop > 20
 }
 
-// Cargar noticias
+// Cargar noticias (sin cambios)
 const loadNews = async () => {
   loading.value = true
   try {
@@ -218,12 +185,12 @@ const loadNews = async () => {
   }
 }
 
-// Refresh
+// Refresh (sin cambios)
 const refreshNews = () => {
   loadNews()
 }
 
-// Utilidades
+// Utilidades (sin cambios)
 const formatDate = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
@@ -247,25 +214,21 @@ const formatRelativeDate = (dateString) => {
   return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
 }
 
-// CORREGIDO: Función truncate que respeta HTML
+// Función truncate (sin cambios)
 const truncateContent = (content) => {
   if (!content) return ''
   
-  // Eliminar etiquetas HTML para contar caracteres reales
   const textOnly = content.replace(/<[^>]*>/g, '')
   
   if (textOnly.length > 120) {
-    // Buscar el último <br> antes del límite para no cortar a medias
     let lastBreak = content.lastIndexOf('<br>', 120)
     if (lastBreak === -1) {
       lastBreak = content.lastIndexOf('<br />', 120)
     }
     
     if (lastBreak !== -1 && lastBreak < 120) {
-      // Cortar en el último <br> encontrado
       return content.substring(0, lastBreak) + '...'
     } else {
-      // Si no hay <br>, cortar en 120 caracteres de texto
       let charCount = 0
       let result = ''
       const tagRegex = /(<[^>]*>)|([^<]+)/g
@@ -273,10 +236,8 @@ const truncateContent = (content) => {
       
       while ((match = tagRegex.exec(content)) !== null) {
         if (match[1]) {
-          // Es una etiqueta, agregarla completa
           result += match[1]
         } else {
-          // Es texto
           const text = match[2]
           const remaining = 120 - charCount
           if (text.length > remaining) {
@@ -299,16 +260,7 @@ const getNewsIcon = (news) => {
   return '📰'
 }
 
-// Acciones
-const openNewsDetails = (news) => {
-  selectedNews.value = news
-  document.body.style.overflow = 'hidden'
-}
-
-const closeNewsDetails = () => {
-  selectedNews.value = null
-  document.body.style.overflow = ''
-}
+// ELIMINADO: openNewsDetails y closeNewsDetails ya no son necesarios
 
 // Lifecycle
 onMounted(() => {
@@ -327,8 +279,7 @@ onUnmounted(() => {
 <style scoped>
 /* ===== ESTILOS UNIFORMES CON LAS OTRAS VISTAS ===== */
 .news-view {
- /* height: 100vh;*/
- flex: 1;
+  flex: 1;
   display: flex;
   flex-direction: column;
   background: #f8fafc;
@@ -394,7 +345,6 @@ onUnmounted(() => {
   text-align: center;
 }
 
-/* Botón de filtro */
 .filter-main-btn {
   display: flex;
   align-items: center;
@@ -423,7 +373,6 @@ onUnmounted(() => {
   border-radius: 12px;
 }
 
-/* Filtros rápidos */
 .quick-filters {
   display: flex;
   gap: 8px;
@@ -470,25 +419,17 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-/* Cards de noticias */
+/* MODIFICADO: Estilos para router-link */
 .news-card {
   background: white;
   border-radius: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
-  animation: cardFadeIn 0.4s ease forwards;
-  opacity: 0;
-}
-
-@keyframes cardFadeIn {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
+  /*animation: cardFadeIn 0.4s ease forwards;
+  opacity: 0;*/
+  text-decoration: none; /* Quitar subrayado del link */
+  color: inherit; /* Mantener color de texto */
+  display: block; /* Para que ocupe todo el ancho */
 }
 
 .news-card:active {
@@ -503,7 +444,6 @@ onUnmounted(() => {
   position: relative;
 }
 
-/* Icono de noticia */
 .news-icon {
   flex-shrink: 0;
   width: 48px;
@@ -520,7 +460,6 @@ onUnmounted(() => {
   font-size: 1.5rem;
 }
 
-/* Contenido */
 .news-content {
   flex: 1;
   min-width: 0;
@@ -553,7 +492,6 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-/* Estilos para la descripción con HTML */
 .news-description {
   font-size: 0.85rem;
   color: #475569;
@@ -574,7 +512,6 @@ onUnmounted(() => {
   margin-bottom: 0;
 }
 
-/* Meta datos */
 .news-meta {
   display: flex;
   flex-wrap: wrap;
@@ -593,14 +530,12 @@ onUnmounted(() => {
   font-size: 0.85rem;
 }
 
-/* Chevron */
 .card-chevron {
   display: flex;
   align-items: center;
   opacity: 0.3;
 }
 
-/* Loader */
 .spinner {
   width: 20px;
   height: 20px;
@@ -624,7 +559,6 @@ onUnmounted(() => {
   font-size: 0.85rem;
 }
 
-/* Empty state */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -681,188 +615,9 @@ onUnmounted(() => {
   background: #1d4ed8;
 }
 
-/* ===== MODAL CENTRADO CON PADDING PARA NAVBAR ===== */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+/* ELIMINADO: Todos los estilos del modal ya no son necesarios */
 
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-}
-
-.modal-fade-enter-from .modal-content,
-.modal-fade-leave-to .modal-content {
-  transform: scale(0.95) translateY(10px);
-  opacity: 0;
-}
-
-/*.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(5px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px; 
-  padding-bottom: calc(20px + 70px); 
-}*/
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-container {
-  width: 100%;
-  max-width: 500px;
-  max-height: 80vh; /* Reducido para dejar espacio a la navbar */
-  margin: auto;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 24px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-  animation: modalAppear 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-  max-height: 80vh;
-}
-
-@keyframes modalAppear {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #f1f5f9;
-  flex-shrink: 0;
-    font-family: 'Times New Roman', Times, serif;
-}
-
-.modal-header h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #0f172a;
-  margin: 0;
-  padding-right: 12px;
-}
-
-.modal-close {
-  width: 36px;
-  height: 36px;
-  border-radius: 36px;
-  border: none;
-  background: #f1f5f9;
-  color: #64748b;
-  font-size: 1.1rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.modal-close:hover {
-  background: #e2e8f0;
-  color: #475569;
-}
-
-.modal-close:active {
-  transform: scale(0.95);
-}
-
-.modal-body {
-  padding: 24px;
-  overflow-y: auto;
-  flex: 1;
-  /* Padding inferior extra para el último elemento */
-  padding-bottom: 32px;
-}
-
-.modal-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 0.85rem;
-  color: #64748b;
-}
-
-.modal-meta span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.modal-meta .meta-badge {
-  background: #fef3c7;
-  color: #92400e;
-  padding: 2px 8px;
-  border-radius: 12px;
-}
-
-.modal-description {
-  font-size: 0.95rem;
-  color: #334155;
-  line-height: 1.6;
-  word-break: break-word;
-  text-align: justify;
-  /* Espacio extra al final */
-  margin-bottom: 16px;
-  font-family: 'Times New Roman', Times, serif;
-}
-
-.modal-description p {
-  margin: 0 0 12px 0;
-  text-align: justify;
-}
-
-.modal-description p:last-child {
-  margin-bottom: 0;
-}
-
-.modal-description br {
-  display: block;
-  content: "";
-  margin-top: 8px;
-}
-
-/* Animaciones */
+/* Animaciones (mantener las que se usan) */
 .slide-fade-enter-active,
 .slide-fade-leave-active {
   transition: all 0.3s ease;
@@ -901,24 +656,6 @@ onUnmounted(() => {
   .card-inner {
     padding: 14px;
   }
-
-  .modal-overlay {
-    padding: 12px;
-    padding-bottom: calc(12px + 70px); /* Ajuste para móvil */
-  }
-
-  .modal-header {
-    padding: 16px 20px;
-  }
-
-  .modal-header h2 {
-    font-size: 1.1rem;
-  }
-
-  .modal-body {
-    padding: 20px;
-    padding-bottom: 28px;
-  }
 }
 
 @media (min-width: 768px) {
@@ -932,27 +669,6 @@ onUnmounted(() => {
 
   .news-list-container {
     background: #f8fafc;
-  }
-
-  .modal-overlay {
-    padding-bottom: calc(20px + 80px); /* Ajuste para desktop */
-  }
-}
-
-/* Ajuste específico para dispositivos muy pequeños */
-@media (max-width: 380px) {
-  .modal-overlay {
-    padding: 8px;
-    padding-bottom: 20px;
-  }
-
-  .modal-header {
-    padding: 14px 16px;
-  }
-
-  .modal-body {
-    padding: 16px;
-    padding-bottom: 100px;
   }
 }
 </style>

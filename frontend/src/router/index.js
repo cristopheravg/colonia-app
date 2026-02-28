@@ -7,9 +7,13 @@ import { jwtDecode } from 'jwt-decode'
 const LoginView = () => import('@/views/auth/LoginView.vue')
 const DashboardView = () => import('@/views/vecino/DashboardView.vue')
 const NewsView = () => import('@/views/vecino/NewsView.vue')
+const NewsDetailsView = () => import('@/views/vecino/NewsDetailsView.vue')
+
 const EventsView = () => import('@/views/vecino/EventsView.vue')
 const BalanceView = () => import('@/views/vecino/BalanceView.vue')
 const QRView = () => import('@/views/vecino/QRView.vue')
+
+
 
 // Admin views
 const AdminLayout = () => import('@/views/admin/AdminLayout.vue')
@@ -56,6 +60,15 @@ const routes = [
     component: NewsView,
     meta: { requiresAuth: true }
   },
+
+  {
+    path: '/noticias/:id',
+    name: 'noticias-detalle',
+    component: NewsDetailsView,
+    meta: { requiresAuth: true }
+  },
+
+
   {
     path: '/eventos',
     name: 'eventos',
