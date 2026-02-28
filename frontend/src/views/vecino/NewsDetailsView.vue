@@ -48,6 +48,7 @@
   </AppLayout>
 </template>
 
+
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -62,28 +63,36 @@ const error = ref(null)
 /**
  * Botón "Volver" inteligente:
  * - Navegador normal: router.back()
- * - WebView Android/iOS: envia mensaje a la app
+ * - WebView Android: window.AndroidWebView.postMessage('goBack')
+ * - WebView iOS: window.webkit.messageHandlers.iosWebViewHandler.postMessage({ action: 'goBack' })
  * - Fallback: redirige al inicio
  */
 const goBack = () => {
+  // Navegador normal con historial
   if (window.history.length > 1) {
     router.back()
     return
   }
 
-  if (window.ReactNativeWebView) {
-    window.ReactNativeWebView.postMessage(JSON.stringify({ action: 'goBack' }))
+  // WebView Android
+  if (window.AndroidWebView) {
+    window.AndroidWebView.postMessage('goBack')
     return
   }
 
+  // WebView iOS
   if (window.webkit?.messageHandlers?.iosWebViewHandler) {
     window.webkit.messageHandlers.iosWebViewHandler.postMessage({ action: 'goBack' })
     return
   }
 
+  // Fallback a home
   router.push('/')
 }
 
+/**
+ * Cargar noticia desde la API
+ */
 const loadNews = async () => {
   loading.value = true
   error.value = null
@@ -111,6 +120,9 @@ const loadNews = async () => {
   }
 }
 
+/**
+ * Formatear fecha en español
+ */
 const formatDate = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
@@ -122,10 +134,12 @@ const formatDate = (dateString) => {
   })
 }
 
+// Cargar noticia al montar el componente
 onMounted(() => {
   loadNews()
 })
 </script>
+
 
 <style scoped>
 .news-detail-view {
