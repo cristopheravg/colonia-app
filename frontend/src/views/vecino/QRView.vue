@@ -212,15 +212,14 @@ onUnmounted(() => {
 /* ===== ESTILOS UNIFORMES CON LA VISTA DE EVENTOS ===== */
 .qr-view {
   /*height: 100vh;*/
-  flex:1;
+  flex: 1;
   display: flex;
   flex-direction: column;
   background: #f8fafc;
-  position: relative;
+  /*position: relative;*/
   animation: pageSlideIn 0.3s ease-out;
+  background-color: red;
 }
-
-
 
 @keyframes pageSlideIn {
   from {
@@ -314,7 +313,9 @@ onUnmounted(() => {
 /* ===== CONTENIDO PRINCIPAL ===== */
 .qr-content {
   flex: 1;
-  overflow-y: auto;
+  /*overflow-y: auto;*/
+  display: flex;
+  flex-direction: column;
   -webkit-overflow-scrolling: touch;
   padding: 20px;
   max-width: 600px;
