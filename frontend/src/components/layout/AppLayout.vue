@@ -75,9 +75,11 @@ const userName = computed(() => authStore.userName)
 
 .app-main {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   padding: 1.5rem;
   overflow-y: auto;
-
+  padding: 1.5rem;
   padding-bottom: 100px; /* espacio para bottom nav */
 }
 
