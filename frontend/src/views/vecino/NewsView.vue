@@ -109,7 +109,7 @@
       </div>
 
       <!-- Modal centrado para noticia completa (con padding para navbar) -->
-      <Teleport>
+      
         <transition name="modal-fade">
           <div v-if="selectedNews" class="modal-overlay" @click.self="closeNewsDetails">
             <div class="modal-container">
@@ -138,7 +138,7 @@
             </div>
           </div>
         </transition>
-      </Teleport>
+      
     </section>
   </AppLayout>
 </template>
