@@ -109,34 +109,36 @@
       </div>
 
       <!-- Modal centrado para noticia completa (con padding para navbar) -->
-      <transition name="modal-fade">
-        <div v-if="selectedNews" class="modal-overlay" @click.self="closeNewsDetails">
-          <div class="modal-container">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h2>{{ selectedNews.titulo }}</h2>
-                <button class="modal-close" @click="closeNewsDetails">✕</button>
-              </div>
-
-              <div class="modal-body">
-                <!-- Metadata -->
-                <div class="modal-meta">
-                  <span class="meta-date">
-                    📅 {{ formatDate(selectedNews.fecha_publicacion) }}
-                  </span>
-                  <span class="meta-views" v-if="selectedNews.visitas">
-                    👁️ {{ selectedNews.visitas }} vistas
-                  </span>
-                  <span class="meta-badge" v-if="selectedNews.destacada">🌟 Destacada</span>
+      <Teleport>
+        <transition name="modal-fade">
+          <div v-if="selectedNews" class="modal-overlay" @click.self="closeNewsDetails">
+            <div class="modal-container">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h2>{{ selectedNews.titulo }}</h2>
+                  <button class="modal-close" @click="closeNewsDetails">✕</button>
                 </div>
 
-                <!-- Contenido completo con v-html -->
-                <div class="modal-description" v-html="selectedNews.contenido"></div>
+                <div class="modal-body">
+                  <!-- Metadata -->
+                  <div class="modal-meta">
+                    <span class="meta-date">
+                      📅 {{ formatDate(selectedNews.fecha_publicacion) }}
+                    </span>
+                    <span class="meta-views" v-if="selectedNews.visitas">
+                      👁️ {{ selectedNews.visitas }} vistas
+                    </span>
+                    <span class="meta-badge" v-if="selectedNews.destacada">🌟 Destacada</span>
+                  </div>
+
+                  <!-- Contenido completo con v-html -->
+                  <div class="modal-description" v-html="selectedNews.contenido"></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </transition>
+        </transition>
+      </Teleport>
     </section>
   </AppLayout>
 </template>
@@ -714,7 +716,15 @@ onUnmounted(() => {
 
 .modal-overlay {
   position: fixed;
+  inset: 0;.modal-overlay {
+  position: fixed;
   inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
   background: rgba(0, 0, 0, 0.5);
   z-index: 9999;
   display: flex;
