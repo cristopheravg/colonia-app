@@ -8,62 +8,6 @@
         </div>
       </div>
 
-      <!-- BANNER DE NOTIFICACIONES - Aparece solo si es necesario -->
-      <transition name="banner-slide">
-        <div v-if="showNotificationBanner" class="notification-banner">
-          <div class="banner-content">
-            <div class="banner-icon">🔔</div>
-            <div class="banner-text">
-              <strong>¡Activa las notificaciones!</strong>
-              <p>Recibe alertas de nuevos eventos y recordatorios de pagos</p>
-            </div>
-            <div class="banner-actions">
-              <button 
-                class="btn-primary"
-                @click="handleNotificationRequest"
-                :disabled="notificationLoading"
-              >
-                <span v-if="notificationLoading" class="spinner-small"></span>
-                <span v-else>Activar ahora</span>
-              </button>
-              <button 
-                class="btn-secondary"
-                @click="dismissNotificationBanner"
-              >
-                Ahora no
-              </button>
-            </div>
-          </div>
-        </div>
-      </transition>
-
-      <!-- BANNER DE BLOQUEO - Si el usuario bloqueó las notificaciones -->
-      <transition name="banner-slide">
-        <div v-if="showBlockedBanner" class="notification-banner blocked">
-          <div class="banner-content">
-            <div class="banner-icon">⚠️</div>
-            <div class="banner-text">
-              <strong>Notificaciones bloqueadas</strong>
-              <p>Para recibir alertas, habilítalas en la configuración del navegador</p>
-            </div>
-            <div class="banner-actions">
-              <button 
-                class="btn-primary"
-                @click="openNotificationSettings"
-              >
-                Configurar
-              </button>
-              <button 
-                class="btn-secondary"
-                @click="dismissNotificationBanner"
-              >
-                Entendido
-              </button>
-            </div>
-          </div>
-        </div>
-      </transition>
-
       <!-- Botón de refresh debajo del header -->
       <div class="refresh-section">
         <button class="refresh-btn" @click="refreshBalance" :disabled="loading">
@@ -206,7 +150,6 @@ import { ref, onMounted, computed, onUnmounted } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { balanceService } from '@/services/balanceService'
 import { useAuthStore } from '@/stores/auth'
-import { requestNotificationPermission } from '@/firebase/messaging'
 
 // Stores
 const authStore = useAuthStore()
@@ -221,23 +164,6 @@ const balance = ref({
   resumen: {}
 })
 const lastUpdateTime = ref(new Date())
-
-// ===== NUEVOS ESTADOS PARA NOTIFICACIONES =====
-const notificationPermission = ref('default')
-const notificationLoading = ref(false)
-const notificationBannerDismissed = ref(false)
-
-// ===== COMPUTADOS PARA NOTIFICACIONES =====
-const showNotificationBanner = computed(() => {
-  return !notificationBannerDismissed.value && 
-         notificationPermission.value === 'default' &&
-         !notificationLoading.value
-})
-
-const showBlockedBanner = computed(() => {
-  return !notificationBannerDismissed.value && 
-         notificationPermission.value === 'denied'
-})
 
 // Scroll handler
 const handleScroll = () => {
@@ -328,116 +254,6 @@ const getStatusText = (item) => {
   return 'Pendiente'
 }
 
-// ===== FUNCIONES DE NOTIFICACIONES =====
-const checkNotificationStatus = () => {
-  if (!('Notification' in window)) {
-    notificationPermission.value = 'denied'
-    return
-  }
-  notificationPermission.value = Notification.permission
-}
-
-
-
-const handleNotificationRequest = async () => {
-  notificationLoading.value = true
-  try {
-    console.log('🔄 Iniciando proceso de notificaciones...');
-    
-    const result = await requestNotificationPermission()
-    
-    if (result.success) {
-      console.log('✅ Permiso y token obtenidos');
-      notificationPermission.value = 'granted'
-      notificationBannerDismissed.value = false
-      
-      // En móvil, dar tiempo extra antes de enviar al backend
-      if (/Android/i.test(navigator.userAgent)) {
-        console.log('📱 Esperando 2 segundos para móvil...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-      
-      // Enviar al backend
-      await sendTokenToBackend(result.token)
-    } else {
-      console.log('❌ Error:', result.error);
-      notificationPermission.value = Notification.permission
-      
-      // Si es móvil y denegó, mostrar mensaje específico
-      if (/Android/i.test(navigator.userAgent) && Notification.permission === 'denied') {
-        alert('📱 En Android, debes activar las notificaciones en: Configuración > Aplicaciones > Chrome > Notificaciones');
-      }
-    }
-  } catch (error) {
-    console.error('Error:', error)
-  } finally {
-    notificationLoading.value = false
-  }
-}
-
-const sendTokenToBackend = async (token) => {
-  try {
-    console.log('📤 Enviando token al backend...');
-    
-    const userToken = localStorage.getItem('colonia_token')
-    if (!userToken) {
-      console.log('❌ No hay token de autenticación');
-      return
-    }
-
-    // Usar URL absoluta para móvil
-    const baseUrl = window.location.origin
-    const url = `${baseUrl}/api/notificaciones/registrar-token`
-    
-    console.log('📡 URL:', url);
-    console.log('🔑 Token:', token.substring(0, 30) + '...');
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${userToken}`
-      },
-      body: JSON.stringify({ token }),
-      credentials: 'include'
-    })
-    
-    console.log('📡 Status:', response.status);
-    
-    const data = await response.json()
-    console.log('📦 Respuesta:', data);
-    
-    if (data.success) {
-      console.log('✅ Token guardado en backend')
-    } else {
-      console.log('⚠️ Error:', data.error)
-    }
-    
-  } catch (error) {
-    console.log('❌ Error fetch:', error.message)
-  }
-}
-
-
-
-
-
-
-const dismissNotificationBanner = () => {
-  notificationBannerDismissed.value = true
-}
-
-const openNotificationSettings = () => {
-  if (navigator.userAgent.includes('Chrome')) {
-    window.open('chrome://settings/content/notifications')
-  } else if (navigator.userAgent.includes('Firefox')) {
-    window.open('about:preferences#privacy')
-  } else {
-    alert('Para activar las notificaciones, ve a la configuración de tu navegador')
-  }
-  notificationBannerDismissed.value = true
-}
-
 // cargar datos reales
 const loadBalanceData = async (retryCount = 0) => {
   if (!authStore.user?.id) {
@@ -481,9 +297,6 @@ onMounted(() => {
   setTimeout(() => {
     document.body.classList.remove('page-enter')
   }, 300)
-  
-  // Verificar estado de notificaciones al cargar la vista
-  checkNotificationStatus()
   
   // Iniciar carga de datos
   loadBalanceData()
@@ -549,132 +362,6 @@ onUnmounted(() => {
   color: #0f172a;
   margin: 0;
   text-align: center;
-}
-
-/* ===== BANNER DE NOTIFICACIONES ===== */
-.notification-banner {
-  background: #f0f9ff;
-  border-bottom: 3px solid #2563eb;
-  padding: 12px 20px;
-  animation: slideDown 0.3s ease-out;
-  position: relative;
-  z-index: 20;
-}
-
-.notification-banner.blocked {
-  background: #fef2f2;
-  border-bottom-color: #dc2626;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.banner-slide-enter-active,
-.banner-slide-leave-active {
-  transition: all 0.3s ease;
-}
-
-.banner-slide-enter-from,
-.banner-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-100%);
-}
-
-.banner-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  max-width: 600px;
-  margin: 0 auto;
-  flex-wrap: wrap;
-}
-
-.banner-icon {
-  font-size: 24px;
-  flex-shrink: 0;
-}
-
-.banner-text {
-  flex: 1;
-  min-width: 200px;
-}
-
-.banner-text strong {
-  display: block;
-  font-size: 0.9rem;
-  color: #0f172a;
-  margin-bottom: 2px;
-}
-
-.banner-text p {
-  margin: 0;
-  font-size: 0.8rem;
-  color: #475569;
-}
-
-.banner-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.btn-primary {
-  background: #2563eb;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 30px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.btn-primary:active {
-  background: #1d4ed8;
-  transform: scale(0.95);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: transparent;
-  border: 1px solid #e2e8f0;
-  padding: 8px 16px;
-  border-radius: 30px;
-  font-size: 0.85rem;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-secondary:active {
-  background: #f1f5f9;
-}
-
-.spinner-small {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
 }
 
 /* ===== SECCIÓN DE REFRESH ===== */
@@ -1209,21 +896,5 @@ onUnmounted(() => {
 /* Ajustes tipográficos */
 .amount, .card-amount, .amount-value {
   font-feature-settings: "tnum";
-}
-
-@media (max-width: 480px) {
-  .banner-content {
-    flex-direction: column;
-    align-items: stretch;
-    text-align: center;
-  }
-
-  .banner-actions {
-    justify-content: center;
-  }
-
-  .btn-primary, .btn-secondary {
-    flex: 1;
-  }
 }
 </style>
