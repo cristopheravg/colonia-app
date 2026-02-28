@@ -314,7 +314,8 @@ onUnmounted(() => {
 }
 
 .balance-view {
-  height: 100vh;
+  /*height: 100vh;*/
+  flex:1;
   display: flex;
   flex-direction: column;
   background: #f8fafc;

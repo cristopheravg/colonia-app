@@ -218,7 +218,6 @@ onUnmounted(() => {
   background: #f8fafc;
   /*position: relative;*/
   animation: pageSlideIn 0.3s ease-out;
-  background-color: red;
 }
 
 @keyframes pageSlideIn {

@@ -325,7 +325,8 @@ onUnmounted(() => {
 <style scoped>
 /* ===== ESTILOS UNIFORMES CON LAS OTRAS VISTAS ===== */
 .news-view {
-  height: 100vh;
+ /* height: 100vh;*/
+ flex: 1;
   display: flex;
   flex-direction: column;
   background: #f8fafc;
