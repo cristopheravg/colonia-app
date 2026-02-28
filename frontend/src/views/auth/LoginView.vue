@@ -6,7 +6,16 @@
       <div class="login-card">
         <!-- Icono/Logo -->
         <div class="card-icon">
-          <span class="emoji-icon">🏘️</span>
+
+          <!-- Icono/Logo -->
+          <div class="card-icon">
+            <img 
+              src="images/splash.png" 
+              alt="Logo App" 
+              class="logo-img"
+            />
+          </div>
+          
         </div>
 
         <div class="card-header">
@@ -462,4 +471,13 @@ const forgotPassword = () => {
 .forgot-password a {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
+
+.logo-img {
+  width: 48px;       /* ajusta a tu gusto */
+  height: 48px;      /* mantener proporción cuadrada */
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
 </style>
