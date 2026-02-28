@@ -74,7 +74,7 @@ const loadNews = async () => {
     const token = localStorage.getItem('colonia_token')
     
     // IMPORTANTE: Ajusta esta URL según tu API real
-    const response = await fetch(`/api/noticias/${id}`, {
+    const response = await fetch(`/noticias/${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
 
