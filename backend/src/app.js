@@ -1,21 +1,22 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import os from 'os';  // ← IMPORTANTE: faltaba esta línea
+import os from 'os';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { testConnection } from './config/database.js';
 
-// Importar rutas
+// Rutas API
 import authRoutes from './routes/authRoutes.js';
 import balanceRoutes from './routes/balanceRoutes.js';
 import eventRoutes from './routes/eventsRoutes.js'; 
 import newsRoutes from './routes/newsRoutes.js'; 
-import otpRoutes from './routes/otpRoutes.js'
+import otpRoutes from './routes/otpRoutes.js';
 import userRoutes from './routes/usersRoutes.js';
-import conceptsRoutes from './routes/conceptsRoutes.js'
-import addPaymentsRoutes from './routes/addPaymentRoutes.js'
-import scannerQRRoutes from './routes/scanQRRoutes.js'
-import notifications from './routes/notifications.js'
-
+import conceptsRoutes from './routes/conceptsRoutes.js';
+import addPaymentsRoutes from './routes/addPaymentRoutes.js';
+import scannerQRRoutes from './routes/scanQRRoutes.js';
+import notifications from './routes/notifications.js';
 
 dotenv.config();
 
@@ -25,52 +26,42 @@ const HOST = '0.0.0.0';
 const isDev = process.env.NODE_ENV === 'development';
 
 // =============================================
-// FUNCIÓN PARA OBTENER IP LOCAL
+// PATHS para servir SPA
+// =============================================
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendDist = path.join(__dirname, '../dist');
+
+// =============================================
+// FUNCION IP LOCAL
 // =============================================
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
-      }
+      if (iface.family === 'IPv4' && !iface.internal) return iface.address;
     }
   }
   return 'localhost';
 }
-
 const localIP = getLocalIP();
 
 // =============================================
-// CONFIGURACIÓN CORS PROFESIONAL
+// CORS profesional
 // =============================================
 const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   `http://${localIP}:5173`,
-  /^http:\/\/192\.168\.\d+\.\d+:5173$/,  // Cualquier IP en red local
-  'https://54.227.139.118',  // Tu servidor de producción
+  /^http:\/\/192\.168\.\d+\.\d+:5173$/,
+  'https://54.227.139.118',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
-// Middleware CORS personalizado (más flexible que el simple)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  
-  // Log para debug (solo desarrollo)
-  if (isDev) {
-    console.log('🌐 Origen:', origin);
-  }
-  
-  // Verificar si el origen está permitido
   if (origin) {
-    const allowed = allowedOrigins.some(allowed => {
-      if (allowed instanceof RegExp) {
-        return allowed.test(origin);
-      }
-      return allowed === origin;
-    });
-    
+    const allowed = allowedOrigins.some(o => o instanceof RegExp ? o.test(origin) : o === origin);
     if (allowed) {
       res.header('Access-Control-Allow-Origin', origin);
       res.header('Access-Control-Allow-Credentials', 'true');
@@ -78,20 +69,16 @@ app.use((req, res, next) => {
       res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     }
   }
-  
-  // Manejar preflight requests (OPTIONS)
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
 
-// Middlewares básicos
+// =============================================
+// Middlewares
+// =============================================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Logger (solo en desarrollo)
 if (isDev) {
   app.use((req, res, next) => {
     console.log(`📥 ${req.method} ${req.url}`);
@@ -99,101 +86,70 @@ if (isDev) {
   });
 }
 
+// =============================================
 // Health check
+// =============================================
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
-    uptime: process.uptime(),
-    timestamp: Date.now(),
-    environment: process.env.NODE_ENV
-  });
+  res.json({ status: 'healthy', uptime: process.uptime(), environment: process.env.NODE_ENV });
 });
 
-// API Root
-app.get('/', (req, res) => {
-  res.json({
-    message: 'API de Colonia App',
-    version: '1.0.0',
-    status: 'online',
-    endpoints: {
-      auth: '/api/auth',
-      users: '/api/usuarios',
-      events: '/api/eventos',
-      news: '/api/noticias',
-      balance: '/api/balance',
-      otp: '/api/otp',
-      concepts: '/api/conceptos',
-      payments: '/api/pagos',
-      attendance: '/api/asistencias'
-    },
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Registrar rutas API
+// =============================================
+// Rutas API
+// =============================================
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', userRoutes);
 app.use('/api/balance', balanceRoutes);
-app.use('/api/eventos', eventRoutes); 
-app.use('/api/noticias', newsRoutes); 
+app.use('/api/eventos', eventRoutes);
+app.use('/api/noticias', newsRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/conceptos', conceptsRoutes);
 app.use('/api/pagos', addPaymentsRoutes);
 app.use('/api/asistencias', scannerQRRoutes);
-app.use('/api/notificaciones',notifications);
+app.use('/api/notificaciones', notifications);
 
-// 404 para rutas API no encontradas
+// 404 solo para API
 app.use('/api/*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `Ruta API no encontrada: ${req.originalUrl}`
-  });
+  res.status(404).json({ success: false, message: `API no encontrada: ${req.originalUrl}` });
 });
 
-// 404 general
-app.use((req, res) => { 
-  res.status(404).json({
-    success: false,
-    message: 'Ruta no encontrada'
-  });
-});
+// =============================================
+// Servir SPA en producción
+// =============================================
+if (!isDev) {
+  app.use(express.static(frontendDist));
 
+  // Catch-all: cualquier ruta que no sea API → index.html
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api')) return res.status(404).json({ success: false, message: 'API no encontrada' });
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
+// =============================================
 // Middleware de errores
+// =============================================
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err);
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Error interno del servidor',
-    ...(isDev && { stack: err.stack, error: err })
+    ...(isDev && { stack: err.stack })
   });
 });
 
+// =============================================
 // Iniciar servidor
+// =============================================
 async function startServer() {
   try {
     const dbConnected = await testConnection();
-    
-    if (!dbConnected) {
-      console.error('❌ No se pudo conectar a la base de datos');
-      process.exit(1);
-    }
-    
+    if (!dbConnected) throw new Error('No se pudo conectar a la base de datos');
+
     app.listen(PORT, HOST, () => {
-      console.log('\n' + '='.repeat(60));
-      console.log('🚀 SERVIDOR INICIADO');
-      console.log('='.repeat(60));
-      console.log(`📡 Local:    http://localhost:${PORT}`);
-      console.log(`🌐 Red:      http://${localIP}:${PORT}`);
-      console.log(`🔗 IP fija:  http://54.227.139.118:${PORT}`);
-      console.log(`📊 Entorno:  ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🗄️  DB:       ${process.env.DB_NAME} (conectada)`);
-      console.log('\n📋 Orígenes CORS permitidos:');
-      allowedOrigins.forEach(o => {
-        console.log(`   - ${o instanceof RegExp ? o.toString() : o}`);
-      });
-      console.log('='.repeat(60) + '\n');
+      console.log(`🚀 Servidor iniciado en ${HOST}:${PORT}`);
+      console.log(`📊 Entorno: ${process.env.NODE_ENV}`);
+      console.log(`🗄️ DB: ${process.env.DB_NAME} (conectada)`);
     });
-    
   } catch (error) {
     console.error('❌ Error al iniciar servidor:', error);
     process.exit(1);

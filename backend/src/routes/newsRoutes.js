@@ -99,4 +99,33 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   }
 })
 
+
+
+/**
+ * GET /api/noticias/:id
+ * Vecinos → detalle de una noticia
+ */
+router.get('/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const [rows] = await pool.query(
+      `SELECT id, titulo, contenido, destacada, fecha_publicacion
+       FROM noticias
+       WHERE id = ?`,
+      [id]
+    )
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Noticia no encontrada' })
+    }
+
+    res.json({ success: true, data: rows[0] })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ success: false, message: 'Error al obtener noticia' })
+  }
+})
+
+
 export default router
