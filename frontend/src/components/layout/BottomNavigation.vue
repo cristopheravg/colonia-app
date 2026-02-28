@@ -12,7 +12,7 @@
     
     <router-link to="/balance" class="nav-item" :class="{ active: $route.path === '/balance' }">
       <Wallet class="nav-icon" />
-      <span class="nav-label">Mi Estado</span>
+      <span class="nav-label">Balance</span>
     </router-link>
     
     <router-link to="/qr" class="nav-item" :class="{ active: $route.path === '/qr' }">
