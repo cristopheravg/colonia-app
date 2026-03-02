@@ -5,6 +5,7 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
+
 // Registrar o actualizar token de dispositivo
 router.post('/registrar-token', authMiddleware, async (req, res) => {
   try {
@@ -65,6 +66,7 @@ router.post('/registrar-token', authMiddleware, async (req, res) => {
   }
 });
 
+
 // Endpoint para obtener dispositivos del usuario
 router.get('/dispositivos', authMiddleware, async (req, res) => {
   try {
@@ -89,6 +91,7 @@ router.get('/dispositivos', authMiddleware, async (req, res) => {
     });
   }
 });
+
 
 // Endpoint para desactivar un dispositivo
 router.delete('/dispositivos/:id', authMiddleware, async (req, res) => {
@@ -118,6 +121,7 @@ router.delete('/dispositivos/:id', authMiddleware, async (req, res) => {
     });
   }
 });
+
 
 // Endpoint para enviar notificación a un usuario específico
 router.post('/enviar/:usuarioId', authMiddleware, async (req, res) => {
@@ -171,28 +175,6 @@ router.post('/enviar/:usuarioId', authMiddleware, async (req, res) => {
   }
 });
 
-// Función para detectar plataforma
-function detectarPlataforma(userAgent) {
-  if (!userAgent) return 'web';
-  if (userAgent.includes('Android')) return 'android';
-  if (userAgent.includes('iPhone') || userAgent.includes('iPad')) return 'ios';
-  return 'web';
-}
-
-// Función para obtener nombre del dispositivo
-function obtenerNombreDispositivo(userAgent) {
-  if (!userAgent) return 'Desconocido';
-  
-  if (userAgent.includes('Windows')) return 'Windows';
-  if (userAgent.includes('Mac OS')) return 'Mac';
-  if (userAgent.includes('Linux')) return 'Linux';
-  if (userAgent.includes('Android')) return 'Android';
-  if (userAgent.includes('iPhone')) return 'iPhone';
-  if (userAgent.includes('iPad')) return 'iPad';
-  
-  return 'Dispositivo Web';
-}
-
 
 // routes/notificaciones.js - Agrega este endpoint especial para móvil
 
@@ -226,6 +208,31 @@ router.post('/registrar-token-movil', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+
+
+// Función para detectar plataforma
+function detectarPlataforma(userAgent) {
+  if (!userAgent) return 'web';
+  if (userAgent.includes('Android')) return 'android';
+  if (userAgent.includes('iPhone') || userAgent.includes('iPad')) return 'ios';
+  return 'web';
+}
+
+// Función para obtener nombre del dispositivo
+function obtenerNombreDispositivo(userAgent) {
+  if (!userAgent) return 'Desconocido';
+  
+  if (userAgent.includes('Windows')) return 'Windows';
+  if (userAgent.includes('Mac OS')) return 'Mac';
+  if (userAgent.includes('Linux')) return 'Linux';
+  if (userAgent.includes('Android')) return 'Android';
+  if (userAgent.includes('iPhone')) return 'iPhone';
+  if (userAgent.includes('iPad')) return 'iPad';
+  
+  return 'Dispositivo Web';
+}
+
 
 
 export default router;

@@ -83,14 +83,14 @@
 
         <!-- Link de recuperación -->
         <div class="forgot-password">
-          <a href="#" @click.prevent="forgotPassword">¿Olvidaste tu contraseña?</a>
+          <!--<a href="#" @click.prevent="forgotPassword">¿Olvidaste tu contraseña?</a>-->
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup>/*
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -144,7 +144,113 @@ const handleLogin = async () => {
 
 const forgotPassword = () => {
   alert('Funcionalidad de recuperación de contraseña - Próximamente')
+}*/
+
+
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const email = ref('')
+const password = ref('')
+const showPassword = ref(false)
+const isLoading = ref(false)
+const error = ref('')
+const isAndroidApp = ref(false)
+
+// Detectar al montar el componente si estamos en app nativa
+onMounted(() => {
+  // Verificar si existe la interfaz de Android
+  isAndroidApp.value = !!window.AndroidApp
+  console.log('📱 ¿Ejecutándose en app nativa?', isAndroidApp.value)
+  
+  if (isAndroidApp.value) {
+    console.log('✅ Interfaz AndroidApp disponible')
+    // Opcional: notificar que la vista de login está lista
+    document.body.classList.add('app-nativa-mode')
+  } else {
+    console.log('🌐 Ejecutándose en navegador web normal')
+  }
+})
+
+const clearError = () => {
+  error.value = ''
 }
+
+// Función para enviar datos a Android de forma segura
+const notifyAndroidLogin = (token, userData) => {
+  try {
+    if (window.AndroidApp) {
+      console.log('📱 Enviando login a app nativa...')
+      window.AndroidApp.onLoginSuccess(
+        token,
+        JSON.stringify({
+          nombre: userData.nombre || userData.name || 'Usuario',
+          email: userData.email || email.value,
+          id: userData.id || 0
+        })
+      )
+      return true
+    }
+  } catch (e) {
+    console.error('❌ Error enviando a app nativa:', e)
+  }
+  return false
+}
+
+const handleLogin = async () => {
+  if (!email.value || !password.value) {
+    error.value = 'Por favor completa todos los campos'
+    return
+  }
+
+  isLoading.value = true
+  error.value = ''
+
+  try {
+    const result = await authStore.login({
+      email: email.value,
+      password: password.value
+    })
+
+    if (result.success) {
+      const rol = result.user?.rol || null
+
+      // 🔴 NOTIFICAR A LA APP NATIVA
+      if (isAndroidApp.value || window.AndroidApp) {
+        notifyAndroidLogin(result.token, result.user)
+      }
+
+      // Pequeña pausa para asegurar que el mensaje se envía
+      setTimeout(() => {
+        // Redirigir según el rol
+        if (rol === 'admin') {
+          router.push('/admin')
+        } else {
+          router.push('/balance')
+        }
+      }, 100)
+      
+    } else {
+      error.value = result.error || 'Credenciales incorrectas'
+    }
+  } catch (err) {
+    console.error('Error en login:', err)
+    error.value = 'Error al conectar con el servidor'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const forgotPassword = () => {
+  alert('Funcionalidad de recuperación de contraseña - Próximamente')
+}
+
+
+
 </script>
 
 <style scoped>
