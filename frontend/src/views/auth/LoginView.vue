@@ -90,7 +90,7 @@
   </div>
 </template>
 
-<script setup>/*
+<script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -144,121 +144,9 @@ const handleLogin = async () => {
 
 const forgotPassword = () => {
   alert('Funcionalidad de recuperación de contraseña - Próximamente')
-}*/
-
-
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-
-const router = useRouter()
-const authStore = useAuthStore()
-
-const email = ref('')
-const password = ref('')
-const showPassword = ref(false)
-const isLoading = ref(false)
-const error = ref('')
-const isAndroidApp = ref(false)
-
-// Detectar app nativa
-onMounted(() => {
-  isAndroidApp.value = !!window.AndroidApp
-  console.log('📱 App nativa detectada?', isAndroidApp.value)
-  if (isAndroidApp.value) {
-    console.log('✅ Interfaz AndroidApp disponible')
-  }
-})
-
-const clearError = () => {
-  error.value = ''
 }
 
-const handleLogin = async () => {
-  if (!email.value || !password.value) {
-    error.value = 'Por favor completa todos los campos'
-    return
-  }
 
-  isLoading.value = true
-  error.value = ''
-
-  try {
-    console.log('🔍 Enviando login al servidor...')
-    const result = await authStore.login({
-      email: email.value,
-      password: password.value
-    })
-
-    console.log('📦 Resultado del login:', result)
-    console.log('📦 Resultado stringify:', JSON.stringify(result))
-
-    if (result.success) {
-      // 🔴 CORREGIDO: El token está en result.data.token (por tu backend)
-      const token = result.data?.token || result.token || result.access_token || ''
-      
-      // Si no viene en la respuesta, intentar obtenerlo de localStorage
-      if (!token) {
-        console.warn('⚠️ No se encontró token en la respuesta, revisando localStorage...')
-        token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
-        if (token) {
-          console.log('✅ Token encontrado en localStorage')
-        }
-      }
-      
-      console.log('🔑 Token extraído:', token ? token.substring(0, 20) + '...' : 'VACÍO')
-      
-      // Obtener usuario - en tu backend está en result.data.user
-      const user = result.data?.user || result.user || {}
-      
-      // Preparar datos para la app nativa
-      const userData = {
-        nombre: user.nombre || user.name || email.value.split('@')[0] || 'Usuario',
-        email: user.email || user.correo || email.value,
-        id: user.id || 0
-      }
-      
-      console.log('👤 Usuario:', userData)
-      
-      // NOTIFICAR A LA APP NATIVA
-      if (window.AndroidApp) {
-        console.log('📱 Enviando login a app nativa...')
-        console.log('📦 Datos a enviar:', userData)
-        console.log('🔑 Token a enviar:', token ? token.substring(0, 20) + '...' : 'VACÍO')
-        
-        try {
-          window.AndroidApp.onLoginSuccess(
-            token,
-            JSON.stringify(userData)
-          )
-          console.log('✅ Llamada a AndroidApp completada')
-        } catch (e) {
-          console.error('❌ Error llamando a AndroidApp:', e)
-        }
-      } else {
-        console.log('🌐 Ejecutando en navegador web normal')
-      }
-
-      // Redirigir según el rol
-      const rol = user.rol || null
-      console.log('🎯 Redirigiendo con rol:', rol)
-      
-      if (rol === 'admin') {
-        router.push('/admin')
-      } else {
-        router.push('/balance')
-      }
-    } else {
-      error.value = result.error || result.message || 'Credenciales incorrectas'
-      console.error('❌ Login falló:', result)
-    }
-  } catch (err) {
-    console.error('❌ Error en login:', err)
-    error.value = 'Error al conectar con el servidor'
-  } finally {
-    isLoading.value = false
-  }
-}
 
 </script>
 
