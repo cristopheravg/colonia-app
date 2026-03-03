@@ -91,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+/*import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -136,6 +136,115 @@ const handleLogin = async () => {
       error.value = result.error || 'Credenciales incorrectas'
     }
   } catch (err) {
+    error.value = 'Error al conectar con el servidor'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const forgotPassword = () => {
+  alert('Funcionalidad de recuperación de contraseña - Próximamente')
+}*/
+
+
+
+import { ref, onMounted } from 'vue'  // 🔴 CAMBIO PARA APP NATIVA: importar onMounted
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const email = ref('')
+const password = ref('')
+const showPassword = ref(false)
+const isLoading = ref(false)
+const error = ref('')
+
+// 🔴 CAMBIO PARA APP NATIVA: variable para detectar si estamos en app nativa
+const isAndroidApp = ref(false)
+
+// 🔴 CAMBIO PARA APP NATIVA: detectar al montar el componente si estamos en app nativa
+onMounted(() => {
+  isAndroidApp.value = !!window.AndroidApp
+  console.log('📱 App nativa detectada?', isAndroidApp.value)
+  if (isAndroidApp.value) {
+    console.log('✅ Interfaz AndroidApp disponible')
+  }
+})
+
+const clearError = () => {
+  error.value = ''
+}
+
+const handleLogin = async () => {
+  if (!email.value || !password.value) {
+    error.value = 'Por favor completa todos los campos'
+    return
+  }
+
+  isLoading.value = true
+  error.value = ''
+
+  try {
+    const result = await authStore.login({
+      email: email.value,
+      password: password.value
+    })
+
+    if (result.success) {
+      // 🔴 CAMBIO PARA APP NATIVA: obtener token JWT de la respuesta
+      // Según tu backend, el token está en result.data?.token
+      const token = result.data?.token || result.token || ''
+      
+      // 🔴 CAMBIO PARA APP NATIVA: obtener usuario de la respuesta
+      const user = result.data?.user || result.user || {}
+      
+      // 🔴 CAMBIO PARA APP NATIVA: logs para depuración
+      console.log('🔑 Token JWT obtenido:', token ? token.substring(0, 20) + '...' : 'VACÍO')
+      console.log('👤 Usuario:', user)
+
+      // 🔴 CAMBIO PARA APP NATIVA: enviar datos a la app nativa si existe
+      if (window.AndroidApp) {
+        console.log('📱 Enviando login a app nativa...')
+        
+        // Preparar datos del usuario para la app nativa
+        const userData = {
+          nombre: user.nombre || user.name || email.value.split('@')[0] || 'Usuario',
+          email: user.email || user.correo || email.value,
+          id: user.id || 0
+        }
+        
+        console.log('📦 Datos a enviar:', userData)
+        
+        try {
+          // Llamar al método de la app nativa
+          window.AndroidApp.onLoginSuccess(
+            token,
+            JSON.stringify(userData)
+          )
+          console.log('✅ Llamada a AndroidApp completada')
+        } catch (e) {
+          console.error('❌ Error llamando a AndroidApp:', e)
+        }
+      } else {
+        console.log('🌐 Ejecutando en navegador web normal')
+      }
+
+      // 🔴 CAMBIO PARA APP NATIVA: obtener rol del usuario
+      const rol = user.rol || null
+
+      // Redirigir según el rol
+      if (rol === 'admin') {
+        router.push('/admin')
+      } else {
+        router.push('/balance')
+      }
+    } else {
+      error.value = result.error || 'Credenciales incorrectas'
+    }
+  } catch (err) {
+    console.error('❌ Error en login:', err)  // 🔴 CAMBIO PARA APP NATIVA: log de error
     error.value = 'Error al conectar con el servidor'
   } finally {
     isLoading.value = false
