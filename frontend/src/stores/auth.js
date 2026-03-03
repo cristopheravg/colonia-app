@@ -32,13 +32,19 @@ export const useAuthStore = defineStore('auth', {
     
     async login(credentials) {
       this.isLoading = true
+      this.error = null
       
       try {
         const response = await authService.login(credentials)
         
         if (response.success) {
+          
+          // Guardar en el store y localStorage (esto ya funciona)
           this.setAuthData(response.data.user, response.data.token)
-          return { success: true, data: response.data.user }
+          return { 
+            success: true, 
+            //data: response.data.user
+            data: response.data }
         } else {
           this.error = response.message
           return { success: false, error: this.error }
